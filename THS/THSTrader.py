@@ -14,7 +14,7 @@ PAGE_INDICATOR = {
     "确定按钮": "com.hexin.plat.android:id/ok_btn",
 }
 
-MAX_COUNT = 1000   # 最大可显示持仓数目，调试用
+MAX_COUNT = 1   # 最大可显示持仓数目，调试用
 
 class THSTrader:
     def __init__(self, serial="emulator-5554") -> None:
