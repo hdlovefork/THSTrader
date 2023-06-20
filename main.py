@@ -1,4 +1,11 @@
-import yaml
+from dynaconf import Dynaconf
+
+
+settings = Dynaconf(
+        envvar_prefix="DYNACONF",
+        settings_files=['config.toml'],
+)
 
 if __name__ == '__main__':
-    pass
+    from script.app import App
+    App().run()
