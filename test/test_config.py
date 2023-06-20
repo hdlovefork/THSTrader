@@ -1,4 +1,5 @@
 import json
+import os.path
 import unittest
 
 import yaml
@@ -27,4 +28,19 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(0.3, self.json_config['trade']['top']['withdraw'])
         self.assertEqual(0.3, self.settings('trade.top.withdraw', None))
         self.assertEqual(0.3, self.settings.get('trade.top.withdraw', None))
+
+    def test_path(self):
+        print(__file__)
+        print(os.path.dirname(__file__))
+        print(os.path.dirname(os.path.dirname(__file__)))
+        # print(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
+
+    def test_ips(self):
+        settings = Dynaconf(
+            envvar_prefix="DYNACONF",
+            settings_files=['ips.toml'],
+        )
+        self.assertEqual(["218.6.170.47", 7709], settings.ips[0])
+        self.assertEqual(["123.125.108.14", 7709], settings.ips[1])
 
