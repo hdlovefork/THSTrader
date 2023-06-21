@@ -4,4 +4,4 @@ __pycache__
 
 # Ignore dynaconf secret files
 .secrets.*
-config.toml
+.env.toml

@@ -3,7 +3,7 @@ from dynaconf import Dynaconf
 
 settings = Dynaconf(
         envvar_prefix="DYNACONF",
-        settings_files=['config.toml'],
+        settings_files=['.env.toml'],
 )
 
 if __name__ == '__main__':

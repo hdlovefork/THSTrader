@@ -1,6 +1,6 @@
 from dynaconf import Dynaconf
 
-settings = Dynaconf(
+env = Dynaconf(
             envvar_prefix="DYNACONF",
-            settings_files=['config.toml'],
+            settings_files=['.env.toml'],
         )
