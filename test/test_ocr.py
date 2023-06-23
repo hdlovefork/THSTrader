@@ -1,5 +1,7 @@
 import unittest
 import uiautomator2 as u2
+
+from THS.THSTrader import THSTrader
 from test import env
 
 
@@ -13,3 +15,17 @@ class TestOCR(unittest.TestCase):
     def test_dump(self):
         print(self.d.dump_hierarchy())
 
+    def test_view_stock_code(self):
+        root = lambda: self.d.xpath('@com.hexin.plat.android:id/chedan_recycler_view')
+        root().child(f'android.widget.LinearLayout[{0 + 1}]').click()
+        if self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').wait(1):
+            print(self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').get_text())
+            self.d.xpath('@com.hexin.plat.android:id/option_cancel').click()
+
+    def test_find_other_bar(self):
+        root = lambda: self.d.xpath('@com.hexin.plat.android:id/chedan_recycler_view')
+
+        print(len(root().child('*').all()))
+        print(root().child('*[3]').info)
+        # 存在其它按钮
+        print(root().child('*[3]').child('*[@resource-id="com.hexin.plat.android:id/cannot_chedan_title_text"]').exists)
