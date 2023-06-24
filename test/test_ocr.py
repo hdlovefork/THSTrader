@@ -2,7 +2,7 @@ import unittest
 import uiautomator2 as u2
 
 from THS.THSTrader import THSTrader
-from test import env
+from main import env
 
 
 class TestOCR(unittest.TestCase):
@@ -29,3 +29,6 @@ class TestOCR(unittest.TestCase):
         print(root().child('*[3]').info)
         # 存在其它按钮
         print(root().child('*[3]').child('*[@resource-id="com.hexin.plat.android:id/cannot_chedan_title_text"]').exists)
+
+    def test_in_withdrawal_page(self):
+        print(self.d(resourceId="com.hexin.plat.android:id/chedan_recycler_view").exists)

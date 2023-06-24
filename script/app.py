@@ -1,15 +1,19 @@
-from pytdx.hq import TdxHq_API
-from pytdx.pool.ippool import AvailableIPPool
-from pytdx.config.hosts import hq_hosts
-import random
-import logging
 import pprint
+
+from pytdx.config.hosts import hq_hosts
+from pytdx.hq import TdxHq_API
+from pytdx.pool.hqpool import TdxHqPool_API
+from pytdx.pool.ippool import AvailableIPPool
+
+from THS.THSTrader import THSTrader, THSWithdrawWatcher
+from main import env
+
 
 class App:
     def __init__(self):
-        pass
+        self.trader = THSTrader(env.serialno)
 
-    def run(self):
+    def fresh_ips(self):
         ips = [(v[1], v[2]) for v in hq_hosts]
 
         ## IP 池对象
@@ -28,4 +32,19 @@ class App:
             ret = api.get_xdxr_info(0, '000001')
             print("send api call done")
             pprint.pprint(ret)
+
+    def listen_withdrawals(self):
+        pass
+
+    def __insert_stocks(self,stocks):
+        print(stocks)
+        pass
+
+    def __delete_stocks(self,stocks):
+        print(stocks)
+        pass
+
+    def run(self):
+        watcher = THSWithdrawWatcher(self.trader,self.__insert_stocks,self.__delete_stocks)
+        watcher.start()
 

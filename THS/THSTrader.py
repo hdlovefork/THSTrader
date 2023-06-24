@@ -1,9 +1,13 @@
+import hashlib
+import threading
 import time
-import os
-import uiautomator2 as u2
+
 import easyocr
-import multiprocessing
+import uiautomator2 as u2
 from PIL import Image
+
+from THS.__ini__ import calc_insert_stocks, calc_delete_stocks
+from log import log
 
 PAGE_INDICATOR = {
     "模拟炒股": "com.hexin.plat.android:id/tab_mn",
@@ -11,6 +15,7 @@ PAGE_INDICATOR = {
     "股票多选": "com.hexin.plat.android:id/stockname_tv",
     "关闭按钮1": "com.hexin.plat.android:id/close_btn",
     "确定按钮": "com.hexin.plat.android:id/ok_btn",
+    "刷新":'//*[@resource-id="com.hexin.plat.android:id/title_bar_right_container"]//*[@resource-id="com.hexin.plat.android:id/title_bar_img"]'
 }
 
 MAX_COUNT = 1  # 最大可显示持仓数目，调试用
@@ -18,10 +23,8 @@ MAX_COUNT = 1  # 最大可显示持仓数目，调试用
 
 class THSTrader:
     def __init__(self, serial="emulator-5554") -> None:
-
         self.d = u2.connect_usb(serial)
         self.reader = easyocr.Reader(['ch_sim', 'en'])
-        self.__back_to_moni_page()
 
     def get_balance(self):
         """ 获取资产 """
@@ -72,37 +75,48 @@ class THSTrader:
 
         return holdings
 
-    def get_avail_withdrawals_ex(self):
+    def get_avail_withdrawals_ex(self, view_code=True):
         """ 获取可以撤单的列表 """
-        self.__back_to_moni_page()
-        self.d(resourceId=f"com.hexin.plat.android:id/menu_withdrawal_image").click()
-        time.sleep(1)
+        if not self.enter_withdrawals_page():
+            return []
+        if not self.click(PAGE_INDICATOR["刷新"]):
+            return []
         withdrawals = []
         root = lambda: self.d.xpath('@com.hexin.plat.android:id/chedan_recycler_view')
         count = len(root().child('*').all())
         for i in range(count):
             # 如果有个元素它下面有文字是"其它",则说明是最后一行，不用再找了
-            if root().child(f'*[{i + 1}]').child('*[@resource-id="com.hexin.plat.android:id/cannot_chedan_title_text"]').exists:
+            if root().child(f'*[{i + 1}]').child(
+                    '*[@resource-id="com.hexin.plat.android:id/cannot_chedan_title_text"]').exists:
                 break
-            root().child(f'*[{i + 1}]').click()
-            if self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').wait(1):
-                stock_code = self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').get_text()
-                self.d.xpath('@com.hexin.plat.android:id/option_cancel').click()
+            stock_code = None
+            if view_code:
+                # 需要查看股票代码
+                root().child(f'*[{i + 1}]').click()
+                if self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').wait():
+                    stock_code = self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').get_text()
+                    self.d.xpath('@com.hexin.plat.android:id/option_cancel').click()
+            try:
                 withdrawals.append({
                     "股票代码": stock_code,
                     "股票名称": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
-                    '//*[@resource-id="com.hexin.plat.android:id/result0"]').get_text(),
-                    "委托价格": float(root().child(f'android.widget.LinearLayout[{i + 1}]').child(
-                    '//*[@resource-id="com.hexin.plat.android:id/result2"]').get_text()),
-                    "委托数量": int(root().child(f'android.widget.LinearLayout[{i + 1}]').child(
-                    '//*[@resource-id="com.hexin.plat.android:id/first_tv"]').get_text()),
+                        '//*[@resource-id="com.hexin.plat.android:id/result0"]').get_text(),
+                    "委托时间": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+                        '//*[@resource-id="com.hexin.plat.android:id/result1"]').get_text(),
+                    # "委托价格": float(root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+                    #     '//*[@resource-id="com.hexin.plat.android:id/result2"]').get_text()),
+                    # "委托数量": int(root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+                    #     '//*[@resource-id="com.hexin.plat.android:id/first_tv"]').get_text()),
                     "委托方向": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
-                    '//*[@resource-id="com.hexin.plat.android:id/result6"]').get_text(),
-                    "委托状态": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
-                    '//*[@resource-id="com.hexin.plat.android:id/result7"]').get_text()
+                        '//*[@resource-id="com.hexin.plat.android:id/result6"]').get_text(),
+                    # "委托状态": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+                    #     '//*[@resource-id="com.hexin.plat.android:id/result7"]').get_text()
                 })
+            except:
+                # 有可能页面已经改变，导致找不到元素
+                break
         return withdrawals
-    
+
     def withdraw(self, stock_name, t, amount, price):
         """ 撤单 """
         self.__back_to_moni_page()
@@ -210,22 +224,35 @@ class THSTrader:
 
         return True
 
+    def click(self, path, wait=False):
+        if wait:
+            self.d.xpath(path).wait()
+        if self.d.xpath(path).exists:
+            self.d.xpath(path).click()
+            return True
+        return False
+
+    def click_d(self, resource_id, wait=False):
+        if wait:
+            self.d(resourceId=resource_id).wait()
+        if self.d(resourceId=resource_id).exists:
+            self.d(resourceId=resource_id).click()
+            return True
+        return False
+
     def __back_to_moni_page(self):
+        log.debug("退回到模拟页面")
         self.__util_close_other()
         self.d.app_start("com.hexin.plat.android")
-        self.d.xpath('//*[@content-desc="交易"]/android.widget.ImageView[1]').click()
-        if self.__util_check_app_page(PAGE_INDICATOR["返回"]):
-            try:
-                self.d(resourceId="com.hexin.plat.android:id/title_bar_img").click()
-            except:
-                pass
-
-        self.d(resourceId="com.hexin.plat.android:id/tab_mn").click()
+        self.click('//*[@content-desc="交易"]/android.widget.ImageView[1]')
+        self.click_d(PAGE_INDICATOR["返回"])
+        self.click_d(PAGE_INDICATOR["模拟炒股"])
+        return True
 
     def __input_stock_no(self, stock_no):
         """ 输入股票ID """
         self.__util_close_other()
-        self.d(resourceId="com.hexin.plat.android:id/content_stock").click()
+        self.click_d("com.hexin.plat.android:id/content_stock")
         time.sleep(2)
         self.__util_input_text(stock_no)
         time.sleep(2)
@@ -239,8 +266,7 @@ class THSTrader:
     def __input_stock_price(self, price):
         """ 输入股票价格 """
         self.__util_close_other()
-        self.d(resourceId="com.hexin.plat.android:id/stockprice").click()
-        time.sleep(2)
+        self.click_d("com.hexin.plat.android:id/stockprice")
         self.__util_input_text(price)
 
     def __input_stock_buy_count(self, buy_count):
@@ -251,18 +277,11 @@ class THSTrader:
         self.__util_input_text(buy_count)
 
     def __util_close_other(self):
-        time.sleep(1)
-        if self.__util_check_app_page(PAGE_INDICATOR["关闭按钮1"]):
-            try:
-                self.d(resourceId=PAGE_INDICATOR["关闭按钮1"]).click()
-            except:
-                pass
-
-        if self.__util_check_app_page(PAGE_INDICATOR["确定按钮"]):
-            try:
-                self.d(resourceId=PAGE_INDICATOR["确定按钮"]).click()
-            except:
-                pass
+        """ 关闭其他弹窗 """
+        log.debug("关闭其他弹窗")
+        self.click_d(PAGE_INDICATOR["关闭按钮1"])
+        self.click_d(PAGE_INDICATOR["确定按钮"])
+        return True
 
     def __util_input_text(self, text):
         """ 输入工具，uiautomator2的clear_text和send_keys速度好像有点儿慢，所以用了这种方法 """
@@ -324,3 +343,75 @@ class THSTrader:
             "委托数量": int(stock_count.replace(",", "")),
             "委托类型": t.replace(" ", "")
         }
+
+    def enter_withdrawals_page(self):
+        """ 进入撤单页面 """
+        log.debug("进入撤单页面")
+        if not self.__in_withdrawals_page():
+            log.debug("不在撤单页面，尝试进入撤单页面")
+            self.__back_to_moni_page()
+            r = self.__click_withdrawal()
+            time.sleep(1)
+            return r
+        return self.__in_withdrawals_page()
+
+    def __click_withdrawal(self):
+        self.d(resourceId=f"com.hexin.plat.android:id/menu_withdrawal_image").wait()
+        if self.d(resourceId=f"com.hexin.plat.android:id/menu_withdrawal_image").exists:
+            self.d(resourceId=f"com.hexin.plat.android:id/menu_withdrawal_image").click()
+            return True
+        return False
+
+    def __in_withdrawals_page(self):
+        return self.d(resourceId="com.hexin.plat.android:id/chedan_recycler_view").exists
+
+
+class THSWithdrawWatcher:
+    def __init__(self, trader, insert_stock_callback=None, delete_stock_callback=None):
+        self.worker_thread = None
+        self.thread_lock = threading.Lock()
+        self.stop_event = threading.Event()
+        self.wait_interval = 0.1
+        self.trader = trader
+        self.insert_stock_callback = insert_stock_callback
+        self.delete_stock_callback = delete_stock_callback
+
+    def start(self):
+        self.worker_thread = threading.Thread(target=self.__worker)
+        self.worker_thread.start()
+
+    def stop(self):
+        self.stop_event.set()
+        if self.worker_thread.is_alive():
+            self.worker_thread.join()
+        self.worker_thread = None
+
+    def __worker(self):
+        log.debug("正在监控撤单页面变化...")
+        last = None
+        last_stocks = []
+        while not self.stop_event.is_set():
+            with self.thread_lock:
+                if self.trader.enter_withdrawals_page():
+                    current = self.__calc_md5(self.trader.d.dump_hierarchy())
+                    if last != current:
+                        last = current
+                        log.debug("撤单页面发生变化")
+                        # 获取变化的股票
+                        stocks = self.trader.get_avail_withdrawals_ex(False)
+                        # 获取当前持仓股票与上一次持仓股票的差集
+                        if self.insert_stock_callback is not None:
+                            insert_stocks = calc_insert_stocks(last_stocks, stocks)
+                            if len(insert_stocks) > 0:
+                                log.debug(f"发现新增股票：{insert_stocks}")
+                                self.insert_stock_callback(insert_stocks)
+                        if self.delete_stock_callback is not None:
+                            delete_stocks = calc_delete_stocks(last_stocks, stocks)
+                            if len(delete_stocks) > 0:
+                                log.debug(f"发现删除股票：{delete_stocks}")
+                                self.delete_stock_callback(delete_stocks)
+                        last_stocks = stocks
+            self.stop_event.wait(self.wait_interval)
+
+    def __calc_md5(self, content):
+        return hashlib.md5(content.encode()).hexdigest()
