@@ -37,11 +37,11 @@ class App:
         pass
 
     def __insert_stocks(self,stocks):
-        print(stocks)
+        print(f'添加：{stocks}')
         pass
 
     def __delete_stocks(self,stocks):
-        print(stocks)
+        print(f'删除：{stocks}')
         pass
 
     def run(self):

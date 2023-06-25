@@ -1,6 +1,7 @@
 import hashlib
 import threading
 import time
+import xml.etree.ElementTree as ET
 
 import easyocr
 import uiautomator2 as u2
@@ -8,14 +9,17 @@ from PIL import Image
 
 from THS.__ini__ import calc_insert_stocks, calc_delete_stocks
 from log import log
+from main import env
 
 PAGE_INDICATOR = {
     "模拟炒股": "com.hexin.plat.android:id/tab_mn",
+    "A股": "com.hexin.plat.android:id/tab_a",
     "返回": "com.hexin.plat.android:id/title_bar_img",
     "股票多选": "com.hexin.plat.android:id/stockname_tv",
     "关闭按钮1": "com.hexin.plat.android:id/close_btn",
     "确定按钮": "com.hexin.plat.android:id/ok_btn",
-    "刷新":'//*[@resource-id="com.hexin.plat.android:id/title_bar_right_container"]//*[@resource-id="com.hexin.plat.android:id/title_bar_img"]'
+    "刷新":'//*[@resource-id="com.hexin.plat.android:id/title_bar_right_container"]//*[@resource-id="com.hexin.plat.android:id/title_bar_img"]',
+    "撤单": "com.hexin.plat.android:id/chedan_recycler_view"
 }
 
 MAX_COUNT = 1  # 最大可显示持仓数目，调试用
@@ -24,7 +28,7 @@ MAX_COUNT = 1  # 最大可显示持仓数目，调试用
 class THSTrader:
     def __init__(self, serial="emulator-5554") -> None:
         self.d = u2.connect_usb(serial)
-        self.reader = easyocr.Reader(['ch_sim', 'en'])
+        #self.reader = easyocr.Reader(['ch_sim', 'en'])
 
     def get_balance(self):
         """ 获取资产 """
@@ -79,10 +83,10 @@ class THSTrader:
         """ 获取可以撤单的列表 """
         if not self.enter_withdrawals_page():
             return []
-        if not self.click(PAGE_INDICATOR["刷新"]):
-            return []
         withdrawals = []
         root = lambda: self.d.xpath('@com.hexin.plat.android:id/chedan_recycler_view')
+        # 点击完刷新后，等待列表出现
+        root().wait()
         count = len(root().child('*').all())
         for i in range(count):
             # 如果有个元素它下面有文字是"其它",则说明是最后一行，不用再找了
@@ -121,7 +125,6 @@ class THSTrader:
         """ 撤单 """
         self.__back_to_moni_page()
         self.d(resourceId=f"com.hexin.plat.android:id/menu_withdrawal_image").click()
-        time.sleep(1)
         success = False
         i = 0
         first = True
@@ -227,18 +230,13 @@ class THSTrader:
     def click(self, path, wait=False):
         if wait:
             self.d.xpath(path).wait()
-        if self.d.xpath(path).exists:
-            self.d.xpath(path).click()
-            return True
-        return False
+        self.d.xpath(path).click()
 
     def click_d(self, resource_id, wait=False):
         if wait:
             self.d(resourceId=resource_id).wait()
         if self.d(resourceId=resource_id).exists:
             self.d(resourceId=resource_id).click()
-            return True
-        return False
 
     def __back_to_moni_page(self):
         log.debug("退回到模拟页面")
@@ -349,11 +347,28 @@ class THSTrader:
         log.debug("进入撤单页面")
         if not self.__in_withdrawals_page():
             log.debug("不在撤单页面，尝试进入撤单页面")
-            self.__back_to_moni_page()
+            if env.appenv != "prod":
+                self.__back_to_moni_page()
+            else:
+                self.__back_to_trade_page()
             r = self.__click_withdrawal()
-            time.sleep(1)
             return r
-        return self.__in_withdrawals_page()
+        log.debug("已在撤单页面")
+        return True
+
+    def withdrawals_page_hierarchy(self):
+        """ 获取撤单列表的xml内容 """
+        log.debug("分析撤单列表是否有更新")
+        # 刷新列表
+        self.click(PAGE_INDICATOR["刷新"])
+            # 等待刷新完成
+        self.d(resourceId=PAGE_INDICATOR['撤单']).wait()
+        if not self.d(resourceId=PAGE_INDICATOR['撤单']).exists:
+            return None
+        root = ET.fromstring(self.d.dump_hierarchy())
+        # 找到撤单节点并获取xml内容
+        node = root.find(f".//*[@resource-id='{PAGE_INDICATOR['撤单']}']")
+        return ET.tostring(node, encoding='unicode')
 
     def __click_withdrawal(self):
         self.d(resourceId=f"com.hexin.plat.android:id/menu_withdrawal_image").wait()
@@ -363,7 +378,18 @@ class THSTrader:
         return False
 
     def __in_withdrawals_page(self):
-        return self.d(resourceId="com.hexin.plat.android:id/chedan_recycler_view").exists
+        if not self.d(resourceId="com.hexin.plat.android:id/chedan_recycler_view").exists:
+            return self.d.xpath('//*[@text="撤单"]').xpath('//*[@content-desc="撤单"]').exists
+        return True
+
+    def __back_to_trade_page(self):
+        log.debug("退回到A股页面")
+        self.__util_close_other()
+        self.d.app_start("com.hexin.plat.android")
+        self.click('//*[@content-desc="交易"]/android.widget.ImageView[1]')
+        self.click_d(PAGE_INDICATOR["返回"])
+        self.click_d(PAGE_INDICATOR["A股"])
+        return True
 
 
 class THSWithdrawWatcher:
@@ -375,6 +401,10 @@ class THSWithdrawWatcher:
         self.trader = trader
         self.insert_stock_callback = insert_stock_callback
         self.delete_stock_callback = delete_stock_callback
+
+    # 析构函数
+    def __del__(self):
+        self.stop()
 
     def start(self):
         self.worker_thread = threading.Thread(target=self.__worker)
@@ -393,8 +423,12 @@ class THSWithdrawWatcher:
         while not self.stop_event.is_set():
             with self.thread_lock:
                 if self.trader.enter_withdrawals_page():
-                    current = self.__calc_md5(self.trader.d.dump_hierarchy())
+                    content = self.trader.withdrawals_page_hierarchy()
+                    if content is None:
+                        continue
+                    current = self.__calc_md5(content)
                     if last != current:
+                        log.debug(f'last: {last}, current: {current}\n{content}')
                         last = current
                         log.debug("撤单页面发生变化")
                         # 获取变化的股票
@@ -414,4 +448,5 @@ class THSWithdrawWatcher:
             self.stop_event.wait(self.wait_interval)
 
     def __calc_md5(self, content):
+        log.debug("计算页面的md5")
         return hashlib.md5(content.encode()).hexdigest()

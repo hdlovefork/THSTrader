@@ -3,9 +3,10 @@ import uiautomator2 as u2
 
 from THS.THSTrader import THSTrader
 from main import env
+from test import measure_time
 
 
-class TestOCR(unittest.TestCase):
+class TestAction(unittest.TestCase):
     def setUp(self) -> None:
         self.d = u2.connect_usb(env.serialno)
 
@@ -31,4 +32,16 @@ class TestOCR(unittest.TestCase):
         print(root().child('*[3]').child('*[@resource-id="com.hexin.plat.android:id/cannot_chedan_title_text"]').exists)
 
     def test_in_withdrawal_page(self):
-        print(self.d(resourceId="com.hexin.plat.android:id/chedan_recycler_view").exists)
+        measure_time(lambda :self.d(resourceId="com.hexin.plat.android:id/chedan_recycler_view").exists)
+        measure_time(self.__util_check_app_page, "com.hexin.plat.android:id/chedan_recycler_view")
+
+    def __util_check_app_page(self, indicator):
+        """ 工具，检查页面是否包含某特征 """
+        hierachy = self.d.dump_hierarchy()
+        if indicator in hierachy:
+            return True
+        return False
+
+    def test_withdrawal_page(self):
+        measure_time(lambda :self.d.xpath('//*[@text="撤单"]').xpath('//*[@content-desc="撤单"]').exists)
+        measure_time(lambda :self.d(resourceId="com.hexin.plat.android:id/chedan_recycler_view").exists)
