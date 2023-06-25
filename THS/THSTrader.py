@@ -94,15 +94,21 @@ class THSTrader:
                     '*[@resource-id="com.hexin.plat.android:id/cannot_chedan_title_text"]').exists:
                 break
             stock_code = None
+            market_code = None
             if view_code:
                 # 需要查看股票代码
                 root().child(f'*[{i + 1}]').click()
                 if self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').wait():
                     stock_code = self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').get_text()
                     self.d.xpath('@com.hexin.plat.android:id/option_cancel').click()
+                    stock_code = stock_code.replace("代码", "")
+                    stock_code = stock_code.replace(" ", "")
+                    if len(stock_code) > 0:
+                        market_code = 0 if int(stock_code[0]) == 0 else 1
             try:
                 withdrawals.append({
                     "股票代码": stock_code,
+                    "市场代码": market_code,
                     "股票名称": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
                         '//*[@resource-id="com.hexin.plat.android:id/result0"]').get_text(),
                     "委托时间": root().child(f'android.widget.LinearLayout[{i + 1}]').child(

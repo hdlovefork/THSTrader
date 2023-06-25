@@ -16,8 +16,8 @@ if __name__ == '__main__':
 @click.option('--num', default=5, type=click.INT, help='number of ip')
 @click.option('--out', default='ips.toml', help='out ips file')
 def main(num, out):
-    if num <= 0:
-        click.echo("num must be greater than 0")
+    if num < 2:
+        click.echo("num must be greater than 1")
         return
     click.echo("get all available ips,please wait...")
     ips = [(v[1], v[2]) for v in hq_hosts]
@@ -35,8 +35,9 @@ def main(num, out):
             break
         i += 1
     # 将available_ips写入文件中，使用toml格式
+    ips = ((v[0],str(v[1])) for v in available_ips.values())
     with open(out, 'w') as f:
-        f.write(toml.dumps({'ips': available_ips.values()}))
+        f.write(toml.dumps({'ips': ips}))
 
 
 if __name__ == '__main__':

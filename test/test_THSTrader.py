@@ -10,9 +10,8 @@ class TestTHSTrader(unittest.TestCase):
         self.trader = THSTrader(env.serialno)
 
     def test_withdrawals(self):
-        withdrawals = measure_time(self.trader.get_avail_withdrawals_ex, False)
-        for withdrawal in withdrawals:
-            print(withdrawal)
+        withdrawals = measure_time(self.trader.get_avail_withdrawals_ex)
+        print(withdrawals)
 
     def test_enter_withdrawals(self):
         self.trader.enter_withdrawals_page()
