@@ -9,7 +9,7 @@ from PIL import Image
 
 from THS.__ini__ import calc_insert_stocks, calc_delete_stocks
 from log import log
-from main import env
+from script import env
 
 PAGE_INDICATOR = {
     "模拟炒股": "com.hexin.plat.android:id/tab_mn",
@@ -137,19 +137,19 @@ class THSTrader:
                         market_code = 0 if int(stock_code[0]) == 0 else 1
             try:
                 withdrawals.append({
-                    "股票代码": stock_code,
-                    "市场代码": market_code,
-                    "股票名称": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+                    "stock_code": stock_code,
+                    "market_code": market_code,
+                    "stock_name": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
                         '//*[@resource-id="com.hexin.plat.android:id/result0"]').get_text(),
-                    "委托时间": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+                    "withdraw_time": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
                         '//*[@resource-id="com.hexin.plat.android:id/result1"]').get_text(),
-                    # "委托价格": float(root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+                    # "withdraw_price": float(root().child(f'android.widget.LinearLayout[{i + 1}]').child(
                     #     '//*[@resource-id="com.hexin.plat.android:id/result2"]').get_text()),
-                    # "委托数量": int(root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+                    # "withdraw_count": int(root().child(f'android.widget.LinearLayout[{i + 1}]').child(
                     #     '//*[@resource-id="com.hexin.plat.android:id/first_tv"]').get_text()),
-                    "委托方向": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+                    "withdraw_direct": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
                         '//*[@resource-id="com.hexin.plat.android:id/result6"]').get_text(),
-                    # "委托状态": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+                    # "withdraw_status": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
                     #     '//*[@resource-id="com.hexin.plat.android:id/result7"]').get_text()
                 })
             except:
@@ -266,7 +266,8 @@ class THSTrader:
     def click(self, path, wait=False):
         if wait:
             self.d.xpath(path).wait()
-        self.d.xpath(path).click()
+        if self.d.xpath(path).exists:
+            self.d.xpath(path).click()
 
     def click_d(self, resource_id, wait=False):
         if wait:
@@ -448,12 +449,12 @@ class THSWithdrawWatcher:
 
     def stop(self):
         self.stop_event.set()
-        if self.worker_thread.is_alive():
+        if self.worker_thread and self.worker_thread.is_alive():
             self.worker_thread.join()
         self.worker_thread = None
 
     def __worker(self):
-        log.debug("正在监控撤单页面变化...")
+        log.info("正在监控撤单页面变化...")
         last = None
         last_stocks = []
         while not self.stop_event.is_set():
@@ -468,17 +469,17 @@ class THSWithdrawWatcher:
                         last = current
                         log.debug("撤单页面发生变化")
                         # 获取变化的股票
-                        stocks = self.trader.get_avail_withdrawals_ex(False)
+                        stocks = self.trader.get_avail_withdrawals_ex()
                         # 获取当前持仓股票与上一次持仓股票的差集
                         if self.insert_stock_callback is not None:
                             insert_stocks = calc_insert_stocks(last_stocks, stocks)
                             if len(insert_stocks) > 0:
-                                log.debug(f"发现新增股票：{insert_stocks}")
+                                log.info(f"发现新增股票：{insert_stocks}")
                                 self.insert_stock_callback(insert_stocks)
                         if self.delete_stock_callback is not None:
                             delete_stocks = calc_delete_stocks(last_stocks, stocks)
                             if len(delete_stocks) > 0:
-                                log.debug(f"发现删除股票：{delete_stocks}")
+                                log.info(f"发现删除股票：{delete_stocks}")
                                 self.delete_stock_callback(delete_stocks)
                         last_stocks = stocks
             self.stop_event.wait(self.wait_interval)

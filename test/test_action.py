@@ -51,5 +51,3 @@ class TestAction(unittest.TestCase):
         print(root().child(f'*[{2 + 1}]').info)
         print(root().child(f'*[{2 + 1}]').xpath('@com.hexin.plat.android:id/gdqc_layout').exists)
 
-    def test_click_other(self):
-

@@ -1,7 +1,6 @@
 import os
 
 import toml
-from pytdx.config.hosts import hq_hosts
 from pytdx.hq import TdxHq_API
 
 from THS.AvailableIPPool import AvailableIPPool
@@ -31,8 +30,13 @@ class THSQuotation:
         # 选出M, H
         # 生成api对象，第一个参数为TdxHq_API后者 TdxExHq_API里的一个，第二个参数为ip池对象。
         self.api = TdxHqPool_API(TdxHq_API, pool)
+
         # connect 函数的参数为M, H 两组 (ip, port) 元组
         self.api.connect()
+
+    def close(self):
+        if self.api and hasattr(self.api, 'close'):
+            self.api.close()
 
     def __enter__(self):
         return self
@@ -49,4 +53,3 @@ class THSQuotation:
         if self.api and hasattr(self.api, item):
             return getattr(self.api, item)
         return None
-
