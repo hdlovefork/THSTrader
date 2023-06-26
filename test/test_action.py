@@ -50,3 +50,6 @@ class TestAction(unittest.TestCase):
         root = lambda: self.d.xpath('@com.hexin.plat.android:id/chedan_recycler_view')
         print(root().child(f'*[{2 + 1}]').info)
         print(root().child(f'*[{2 + 1}]').xpath('@com.hexin.plat.android:id/gdqc_layout').exists)
+
+    def test_click_other(self):
+

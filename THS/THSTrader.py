@@ -19,8 +19,20 @@ PAGE_INDICATOR = {
     "关闭按钮1": "com.hexin.plat.android:id/close_btn",
     "确定按钮": "com.hexin.plat.android:id/ok_btn",
     "刷新":'//*[@resource-id="com.hexin.plat.android:id/title_bar_right_container"]//*[@resource-id="com.hexin.plat.android:id/title_bar_img"]',
-    "撤单": "com.hexin.plat.android:id/chedan_recycler_view"
+    "撤单": "com.hexin.plat.android:id/chedan_recycler_view",
+    "取消": "com.hexin.plat.android:id/cancel_btn",
 }
+
+BTN_CLOSE = [
+    # 关闭按钮
+    "com.hexin.plat.android:id/close_btn",
+    # 取消
+    "com.hexin.plat.android:id/cancel_btn",
+    # 返回
+    "com.hexin.plat.android:id/backButton",
+    # 确定
+    "com.hexin.plat.android:id/ok_btn",
+]
 
 MAX_COUNT = 1  # 最大可显示持仓数目，调试用
 
@@ -94,12 +106,19 @@ class THSTrader:
         count = len(root().child('*').all())
         log.debug(f"撤单列表有{count}个元素")
         for i in range(count):
+            # 空列表，则说明是最后一行，不用再找了
+            if root().child(f'*[{i + 1}]').child(
+                    '*[@resource-id="com.hexin.plat.android:id/chedan_empty_layout"]').exists:
+                log.debug("当前没有可撤委托单")
+                break
             # 如果有个元素它下面有文字是"其它",则说明是最后一行，不用再找了
             if root().child(f'*[{i + 1}]').child(
                     '*[@resource-id="com.hexin.plat.android:id/cannot_chedan_title_text"]').exists:
+                log.debug("到其它了，不用再找了")
                 break
             # 全撤、撤买、撤卖按钮组，则说明是最后一行，不用再找了
             if root().child(f'*[{i + 1}]').xpath('@com.hexin.plat.android:id/gdqc_layout').exists:
+                log.debug("到全撤、撤买、撤卖按钮组了，不用再找了")
                 break
             stock_code = None
             market_code = None
@@ -294,8 +313,8 @@ class THSTrader:
     def __util_close_other(self):
         """ 关闭其他弹窗 """
         log.debug("关闭其他弹窗")
-        self.click_d(PAGE_INDICATOR["关闭按钮1"])
-        self.click_d(PAGE_INDICATOR["确定按钮"])
+        for btn in BTN_CLOSE:
+            self.click_d(btn)
         return True
 
     def __util_input_text(self, text):
