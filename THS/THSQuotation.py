@@ -3,8 +3,9 @@ import os
 import toml
 from pytdx.config.hosts import hq_hosts
 from pytdx.hq import TdxHq_API
-from pytdx.pool.hqpool import TdxHqPool_API
-from pytdx.pool.ippool import AvailableIPPool
+
+from THS.AvailableIPPool import AvailableIPPool
+from THS.TdxHqPool_API import TdxHqPool_API
 
 
 def load_ips(path):
@@ -28,11 +29,17 @@ class THSQuotation:
         # IP 池对象
         pool = AvailableIPPool(TdxHq_API, ips)
         # 选出M, H
-        primary_ip, hot_backup_ip = ips[:2]
         # 生成api对象，第一个参数为TdxHq_API后者 TdxExHq_API里的一个，第二个参数为ip池对象。
         self.api = TdxHqPool_API(TdxHq_API, pool)
         # connect 函数的参数为M, H 两组 (ip, port) 元组
-        self.api.connect(primary_ip, hot_backup_ip)
+        self.api.connect()
+
+    def __enter__(self):
+        return self
+
+    def __delete__(self, instance):
+        if self.api and hasattr(self.api, 'close'):
+            self.api.close()
 
     def __del__(self):
         if self.api and hasattr(self.api, 'close'):

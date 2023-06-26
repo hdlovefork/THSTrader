@@ -2,6 +2,7 @@ import os
 import unittest
 
 import toml
+from pytdx.params import TDXParams
 
 from THS.THSQuotation import THSQuotation, load_ips
 
@@ -11,10 +12,10 @@ class TestTHSQuotation(unittest.TestCase):
         self.quotation = THSQuotation(os.path.join('../','bin', 'ips.toml'))
 
     def test_get_xdxr_info(self):
-        print(self.quotation.get_xdxr_info(0, '000001'))
+        print(self.quotation.get_security_quotes(1, '601177'))
 
     def test_get_security_quotes(self):
-        print(self.quotation.get_security_quotes([(0, '000001')]))
+        print(self.quotation.get_security_quotes([(1, '600001'),(1, '600003')]))
 
     def test_load_ips(self):
         with open('ips.toml', 'r') as f:

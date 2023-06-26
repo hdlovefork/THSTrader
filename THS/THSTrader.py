@@ -28,6 +28,7 @@ MAX_COUNT = 1  # 最大可显示持仓数目，调试用
 class THSTrader:
     def __init__(self, serial="emulator-5554") -> None:
         self.d = u2.connect_usb(serial)
+        self.d.settings['wait_timeout'] = 1
         #self.reader = easyocr.Reader(['ch_sim', 'en'])
 
     def get_balance(self):
@@ -81,24 +82,34 @@ class THSTrader:
 
     def get_avail_withdrawals_ex(self, view_code=True):
         """ 获取可以撤单的列表 """
+        log.debug("获取可以撤单的列表")
         if not self.enter_withdrawals_page():
             return []
+        log.debug("判断是否有撤单")
         withdrawals = []
         root = lambda: self.d.xpath('@com.hexin.plat.android:id/chedan_recycler_view')
         # 点击完刷新后，等待列表出现
+        log.debug("等待撤单列表出现")
         root().wait()
         count = len(root().child('*').all())
+        log.debug(f"撤单列表有{count}个元素")
         for i in range(count):
             # 如果有个元素它下面有文字是"其它",则说明是最后一行，不用再找了
             if root().child(f'*[{i + 1}]').child(
                     '*[@resource-id="com.hexin.plat.android:id/cannot_chedan_title_text"]').exists:
                 break
+            # 全撤、撤买、撤卖按钮组，则说明是最后一行，不用再找了
+            if root().child(f'*[{i + 1}]').xpath('@com.hexin.plat.android:id/gdqc_layout').exists:
+                break
             stock_code = None
             market_code = None
             if view_code:
                 # 需要查看股票代码
+                log.debug(f"查看第{i + 1}个元素的股票代码")
                 root().child(f'*[{i + 1}]').click()
+                log.debug("等待股票代码对话框出现")
                 if self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').wait():
+                    log.debug("股票代码对话框出现")
                     stock_code = self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').get_text()
                     self.d.xpath('@com.hexin.plat.android:id/option_cancel').click()
                     stock_code = stock_code.replace("代码", "")

@@ -45,3 +45,8 @@ class TestAction(unittest.TestCase):
     def test_withdrawal_page(self):
         measure_time(lambda :self.d.xpath('//*[@text="撤单"]').xpath('//*[@content-desc="撤单"]').exists)
         measure_time(lambda :self.d(resourceId="com.hexin.plat.android:id/chedan_recycler_view").exists)
+
+    def test_quan_che_panel(self):
+        root = lambda: self.d.xpath('@com.hexin.plat.android:id/chedan_recycler_view')
+        print(root().child(f'*[{2 + 1}]').info)
+        print(root().child(f'*[{2 + 1}]').xpath('@com.hexin.plat.android:id/gdqc_layout').exists)

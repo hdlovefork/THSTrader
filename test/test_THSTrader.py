@@ -11,7 +11,8 @@ class TestTHSTrader(unittest.TestCase):
 
     def test_withdrawals(self):
         withdrawals = measure_time(self.trader.get_avail_withdrawals_ex)
-        print(withdrawals)
+        for v in withdrawals:
+            print(v)
 
     def test_enter_withdrawals(self):
         self.trader.enter_withdrawals_page()
