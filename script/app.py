@@ -14,7 +14,6 @@ class App:
         self.quotation = THSQuotation(env.ipspath)
         self.quotation_watcher = QuotationWatcher(self.quotation, self.listen_quotation)
         self.watcher = THSWithdrawWatcher(self.trader,self.__insert_stocks,self.__delete_stocks)
-        # self.test_thread = TestThread()
 
     def listen_quotation(self,quot_stocks):
         log.debug(quot_stocks)
@@ -28,7 +27,6 @@ class App:
     def run(self):
         self.watcher.start()
         self.quotation_watcher.start_watch()
-        # self.test_thread.start()
 
         # 提示用户输入exit退出程序
         while True:
@@ -37,7 +35,6 @@ class App:
                 break
             time.sleep(1)
         log.info("正在退出程序...")
-        # self.test_thread.stop()
         self.quotation_watcher.stop_watch()
         self.watcher.stop()
         self.quotation.close()

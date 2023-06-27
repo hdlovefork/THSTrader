@@ -16,8 +16,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual('127.0.0.1:62001', self.settings.serialno)
 
     def test_can_get_trade_top_withdraw(self):
-        self.assertEqual(0.3, self.settings('trade.top.withdraw', None))
-        self.assertEqual(0.3, self.settings.get('trade.top.withdraw', None))
+        self.assertEqual(0.3, self.settings('trade.withdrawal.top.buy1', None))
 
     def test_path(self):
         print(__file__)
