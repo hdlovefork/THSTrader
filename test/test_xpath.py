@@ -1,14 +1,14 @@
+import os
 import unittest
+
 import uiautomator2 as u2
 
-from THS.THSTrader import THSTrader
-from main import env
 from test import measure_time
 
 
-class TestAction(unittest.TestCase):
+class TestXPath(unittest.TestCase):
     def setUp(self) -> None:
-        self.d = u2.connect_usb(env.serialno)
+        self.d = u2.connect_usb(os.getenv("SERIALNO"))
 
     def test_withdraw_click(self):
         self.d.xpath('//*[@content-desc="交易"]/android.widget.ImageView[1]').click()

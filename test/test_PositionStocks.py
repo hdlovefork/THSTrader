@@ -1,7 +1,5 @@
 import unittest
 
-from THS.PositionStocks import PositionStocks
-
 
 class TestPositionStocks(unittest.TestCase):
     def setUp(self) -> None:

@@ -1,21 +1,15 @@
-import logging
+import os
 import time
 
 from dynaconf import Dynaconf
-from log import log
 
 env = Dynaconf(
         envvar_prefix="DYNACONF",
         settings_files=['.env.toml'],
-)
+    )
 
-log.setLevel(env.LOGLEVEL)
-ch = logging.StreamHandler()
-ch.setLevel(env.LOGLEVEL)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# add formatter to ch
-ch.setFormatter(formatter)
-log.addHandler(ch)
+os.environ['APPENV'] = env.appenv
+os.environ['SERIALNO'] = env.serialno
 
 def measure_time(func, *args, **kwargs):
         start_time = time.time()

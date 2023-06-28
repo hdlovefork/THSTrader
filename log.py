@@ -3,12 +3,7 @@
 import logging
 import os
 
-DEBUG = os.getenv("THS_DEBUG", "")
-
-if DEBUG:
-    LOGLEVEL = logging.DEBUG
-else:
-    LOGLEVEL = logging.INFO
+LOGLEVEL = os.getenv("LOGLEVEL", "DEBUG")
 
 log = logging.getLogger("PYTHS")
 

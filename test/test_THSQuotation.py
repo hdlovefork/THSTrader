@@ -2,9 +2,8 @@ import os
 import unittest
 
 import toml
-from pytdx.params import TDXParams
 
-from THS.THSQuotation import THSQuotation, load_ips
+from THS.THSQuotation import THSQuotation
 
 
 class TestTHSQuotation(unittest.TestCase):
