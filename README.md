@@ -7,26 +7,26 @@
 源于打首板总是破板之后被买进的痛苦，不光是当天蒙受损失，还要等T+1才能卖出，所以就想着能不能写个程序，能够在打首板的时候排队监控买1的手数，如果有人大量撤单，那么程序就能监控到并且撤单，防止破板被迫买进。
 
 ## 运行时所需依赖
-需要Windows系统哈，别的系统可以考虑自己连接安卓真机改一下截图的参数。
 ### 1. Python依赖
-我使用的是Python3.9，以上版本应该也可以。
+我使用的是Python3.9.1，以上版本应该也可以
 ``` bash
 git clone https://github.com/nladuo/THSTrader.git
 cd THSTrader
 pip install -r requirements.txt
+```
+* 安装依赖过程中如果有报错，请将下面内容添加到hosts文件中：
+```bash
+185.199.109.133 raw.githubusercontent.com
 ```
 
 ### 2. 安装夜神模拟器（支持Mac、Windows、Linux）
 下载链接：[https://www.yeshen.com/](https://www.yeshen.com/)
 
 ### 3. 配置模拟器分辨率
-模拟器分辨率我用的是720x1280，320dpi，如需其他分辨率请自行修改代码里的参数。
-![](assets/img.png)
+与屏幕分辨率无关
 
 ### 4. 安装同花顺APP
 在模拟器上安装同花顺APP，模拟器上用浏览器打开链接：[http://focus.10jqka.com.cn/special/phone/wapsubject_8299.shtml](http://focus.10jqka.com.cn/special/phone/wapsubject_8299.shtml) 
-
-安装好之后请登录同花顺APP找到模拟炒股那里保证模拟炒股可以使用，如果不知道怎么操作可以看后面的B站视频。
 
 ## 二次开发用到的工具
 ### 查看[uiautomatorviewer](uiautomatorviewer/README.md)的使用方法
