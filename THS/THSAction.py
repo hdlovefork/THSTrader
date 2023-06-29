@@ -50,6 +50,8 @@ class THSAction:
         # 撤单页面刷新与撤单操作不能同时进行
         self.withdraw_lock = threading.Lock()
         self.last_withdrawal_stocks = None
+        # 保存股票名称和股票代码的映射
+        self.stoke_codes = {}
 
     def get_avail_withdrawals_ex(self, view_code=True):
         """ 获取可以撤单的列表 """
@@ -59,39 +61,48 @@ class THSAction:
         withdrawals = []
         root = lambda: self.d.xpath('@com.hexin.plat.android:id/chedan_recycler_view')
         # 点击完刷新后，等待列表出现
-        log.debug("等待撤单列表出现")
+        log.debug("——等待撤单列表出现")
         root().wait()
         count = len(root().child('*').all())
-        log.debug(f"撤单列表有{count}个元素")
+        log.debug(f"——撤单列表有{count}个元素")
         for i in range(count):
             # 空列表，则说明是最后一行，不用再找了
             if root().child(f'*[{i + 1}]').child(
                     '*[@resource-id="com.hexin.plat.android:id/chedan_empty_layout"]').exists:
-                log.debug("当前没有可撤委托单")
+                log.debug("——当前没有可撤委托单")
                 break
             # 如果有个元素它下面有文字是"其它",则说明是最后一行，不用再找了
             if root().child(f'*[{i + 1}]').child(
                     '*[@resource-id="com.hexin.plat.android:id/cannot_chedan_title_text"]').exists:
-                log.debug("到其它了，不用再找了")
+                log.debug("——到其它了，不用再找了")
                 break
             # 全撤、撤买、撤卖按钮组，则说明是最后一行，不用再找了
             if root().child(f'*[{i + 1}]').xpath('@com.hexin.plat.android:id/gdqc_layout').exists:
-                log.debug("到全撤、撤买、撤卖按钮组了，不用再找了")
+                log.debug("——到全撤、撤买、撤卖按钮组了，不用再找了")
                 break
             stock_code = None
             market_code = None
+            stock_name = root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+                '//*[@resource-id="com.hexin.plat.android:id/result0"]').get_text()
             if view_code:
                 # 需要查看股票代码
-                log.debug(f"查看第{i + 1}个元素的股票代码")
-                stock = self.withdraw_dialog_cancel_when(i, lambda stock: True)
-                stock_code = stock["stock_code"]
-                market_code = stock["market_code"]
+                log.debug(f"——查看第{i + 1}个元素的股票代码")
+                if stock_name in self.stoke_codes:
+                    log.debug(f"——股票代码已经存在字典中，不用再打开股票对话框查看代码")
+                    stock_code, market_code = self.stoke_codes[stock_name]
+                else:
+                    stock = self.withdraw_dialog_cancel_when(i, lambda stock: True)
+                    if stock is not None:
+                        stock_code = stock["stock_code"]
+                        market_code = stock["market_code"]
+                        # 存入字典下次不再需要打开股票对话框查看代码
+                        if stock_name not in self.stoke_codes and stock_code is not None and market_code is not None:
+                            self.stoke_codes[stock_name] = (stock_code, market_code)
             try:
                 withdrawals.append({
                     "stock_code": stock_code,
                     "market_code": market_code,
-                    "stock_name": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
-                        '//*[@resource-id="com.hexin.plat.android:id/result0"]').get_text(),
+                    "stock_name": stock_name,
                     "withdraw_time": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
                         '//*[@resource-id="com.hexin.plat.android:id/result1"]').get_text(),
                     # "withdraw_price": float(root().child(f'android.widget.LinearLayout[{i + 1}]').child(
@@ -148,8 +159,10 @@ class THSAction:
     def withdraw_dialog_cancel_when(self, i, when):
         return self.withdraw_dialog_when(i, when, lambda stock: self.click('撤单取消'))
 
-    def withdraw(self, stock_name):
+    def withdraw(self, stock_name,when=None):
         """ 撤单 """
+        # 已经完成的撤单列表
+        satisfy_withdrawals = []
         # 重试3次
         completed = False
         for i in range(3):
@@ -164,6 +177,10 @@ class THSAction:
                 i = 0
                 while i < len(self.last_withdrawal_stocks):
                     stock = self.last_withdrawal_stocks[i]
+                    if callable(when) and not when(stock):
+                        # 不满足条件，继续下一个
+                        i += 1
+                        continue
                     if stock['stock_name'] != stock_name:
                         # 不是要撤单的股票，继续下一个
                         i += 1
@@ -174,11 +191,13 @@ class THSAction:
                         continue
                     # 从撤单列表中删除
                     self.last_withdrawal_stocks.pop(i)
+                    # 添加到已经完成的撤单列表
+                    satisfy_withdrawals.append(stock)
                     # 不需要重试
                     completed = True
                     # 撤单成功后，从i开始继续检索，因为可能同一股票名称有2笔买入订单
                     # i位置的元素已经被删除了，所以不需要i+1
-        return completed
+        return satisfy_withdrawals
 
     def click(self, name, wait=False, set=None):
         set = PAGE_INDICATOR if set is None else set
@@ -267,7 +286,8 @@ class THSAction:
             log.debug("——不在撤单页面，尝试进入撤单页面")
             self.__back_to_trade_page(os.getenv("APPENV"), lambda:self.in_withdrawals_page())
             if not self.in_withdrawals_page():
-                return self.click("交易面板撤单按钮", True)
+                self.click("交易面板撤单按钮", True)
+                return self.in_withdrawals_page()
         log.debug("——已在撤单页面")
         return True
 
@@ -330,24 +350,27 @@ class THSWithdrawWatcher:
                         continue
                     current = self.__calc_md5(content)
                     if last != current:
-                        log.debug(f'last: {last}, current: {current}\n{content}')
+                        log.debug(f'——last: {last}, current: {current}\n{content}')
                         last = current
-                        log.debug("撤单页面发生变化")
+                        log.debug("——撤单页面发生变化")
                         # 获取变化的股票
                         stocks = self.trader.get_avail_withdrawals_ex()
                         # 获取当前持仓股票与上一次持仓股票的差集
                         if self.insert_stock_callback is not None:
+                            log.debug(f"计算插入的差集 last_stocks:{last_stocks} stocks: {stocks}")
                             insert_stocks = calc_insert_stocks(last_stocks, stocks)
                             if len(insert_stocks) > 0:
-                                log.info(f"发现新增股票：{insert_stocks}")
+                                log.info(f"——发现新增股票：{insert_stocks}")
                                 self.insert_stock_callback(insert_stocks)
                         if self.delete_stock_callback is not None:
+                            log.debug(f"计算删除的差集 last_stocks:{last_stocks} stocks: {stocks}")
                             delete_stocks = calc_delete_stocks(last_stocks, stocks)
                             if len(delete_stocks) > 0:
-                                log.info(f"发现删除股票：{delete_stocks}")
+                                log.info(f"——发现删除股票：{delete_stocks}")
                                 self.delete_stock_callback(delete_stocks)
-                        last_stocks = stocks
-                        self.trader.last_withdrawal_stocks = stocks
+                        last_stocks.clear()
+                        last_stocks.extend(stocks)
+
             self.stop_event.wait(self.wait_interval)
 
     def __calc_md5(self, content):

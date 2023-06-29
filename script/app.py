@@ -1,6 +1,6 @@
 from THS.QuotationWatcher import QuotationWatcher
+from THS.THSAction import THSAction, THSWithdrawWatcher
 from THS.THSQuotation import THSQuotation
-from THS.THSTrader import THSAction, THSWithdrawWatcher
 
 from THS.THSWithdrawal import THSWithdrawal
 from log import log
@@ -27,7 +27,7 @@ class App:
     def run(self):
         try:
             self.watcher.start()
-            self.quotation_watcher.start_watch()
+            self.quotation_watcher.start()
 
             # 提示用户输入exit退出程序
             while True:
@@ -38,6 +38,6 @@ class App:
             log.exception(e)
         finally:
             log.info("正在退出程序...")
-            self.quotation_watcher.stop_watch()
+            self.quotation_watcher.stop()
             self.watcher.stop()
             self.quotation.close()

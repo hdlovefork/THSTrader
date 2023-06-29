@@ -12,10 +12,10 @@ class TdxHqPool_API(BaseTdxHqPool_API):
     def connect(self):
         log.debug("setup ip pool")
         self.ippool.setup()
-        log.debug("connecting to primary api")
+        log.debug("——connecting to primary api")
         ipandport = self.ippool.get_next_ip()
         self.api.connect(*ipandport)
-        log.debug("connecting to hot backup api")
+        log.debug("——connecting to hot backup api")
         hot_failover_ipandport = self.ippool.get_next_ip()
         self.hot_failover_api.connect(*hot_failover_ipandport)
         return self

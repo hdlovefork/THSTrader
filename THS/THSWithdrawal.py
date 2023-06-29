@@ -2,15 +2,18 @@ from log import log
 
 
 class THSWithdrawal:
-    def __init__(self,action,env):
+    def __init__(self, action, env):
         self.action = action
         # 上一次股票行情数据 {'000001': {bid_vol1: 0, ask_vol1: 0,...}}
         self.last_tick = {}
         self.env = env
 
     def resolve(self, quot_stocks):
+        log.debug("撤单处理开始")
+        satisfy_stocks = []
         for s in quot_stocks:
             cur_stock = dict(s)
+            log.debug("——当前股票：{}".format(cur_stock))
             '''
             cur_stock数据结构：
             {'market': 0, 'code': '000010', 'active1': 0, 'price': 0.0, 'last_close': 2.08, 'open': 0.0, 
@@ -29,11 +32,12 @@ class THSWithdrawal:
             # 如果撤单规则的bid_vol1大于0，同时当前买1数大于当前行情的买1数，则撤单
             if self.env.withdrawal.top.bid_vol1 > 1 and self.env.withdrawal.top.bid_vol1 > cur_bid_vol1:
                 log.info("撤单：由于当前买1数(%d) < 配置买1数(%d)" % (cur_bid_vol1, self.env.withdrawal.top.bid_vol1))
-                self.do_withdraw(cur_stock)
+                satisfy_stocks.extend(self.do_withdraw(cur_stock))
                 continue
             # 如果self.withdrawal_stocks中没有该stock.code，则添加
             if cur_stock['code'] not in self.last_tick:
                 self.last_tick[cur_stock['code']] = cur_stock
+                log.debug("——添加股票行情：%s,%s" % (cur_stock['code'], cur_stock['name']))
                 continue
             # 如果self.withdrawal_stocks中有该stock.code，则更新
             else:
@@ -48,13 +52,18 @@ class THSWithdrawal:
                         is_withdrawal = True
             # 需要撤单
             if is_withdrawal:
-                self.do_withdraw(cur_stock)
+                satisfy_stocks.extend(self.do_withdraw(cur_stock))
             else:
+                log.debug("——更新股票行情：%s,%s" % (cur_stock['code'], cur_stock['name']))
                 self.last_tick[cur_stock['code']].update(cur_stock)
+        log.debug("——撤单处理结束，满足条件的股票：%s" % satisfy_stocks)
+        return satisfy_stocks
 
-    def do_withdraw(self,cur_stock):
+    def do_withdraw(self, cur_stock):
         log.info("执行撤单操作：%s,%s" % (cur_stock['code'], cur_stock['name']))
-        self.action.withdraw(cur_stock['name'])
+        withdrew_stocks = self.action.withdraw(cur_stock['name'], lambda s: s['withdraw_direct'] == '买入')
         # 撤单后，从行情tick记录中删除该股票
         if cur_stock['code'] in self.last_tick:
             self.last_tick.pop(cur_stock['code'])
+        log.debug("——已撤单股票：%s" % withdrew_stocks)
+        return withdrew_stocks
