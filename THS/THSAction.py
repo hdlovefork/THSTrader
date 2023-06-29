@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 
 import uiautomator2 as u2
 
+from THS.Storage import Storage
 from THS.__ini__ import calc_insert_stocks, calc_delete_stocks
 from log import log
 
@@ -51,7 +52,7 @@ class THSAction:
         self.withdraw_lock = threading.Lock()
         self.last_withdrawal_stocks = None
         # 保存股票名称和股票代码的映射
-        self.stoke_codes = {}
+        self.stock_storage = Storage()
 
     def get_avail_withdrawals_ex(self, view_code=True):
         """ 获取可以撤单的列表 """
@@ -87,17 +88,17 @@ class THSAction:
             if view_code:
                 # 需要查看股票代码
                 log.debug(f"——查看第{i + 1}个元素的股票代码")
-                if stock_name in self.stoke_codes:
+                if self.stock_storage.has(stock_name):
                     log.debug(f"——股票代码已经存在字典中，不用再打开股票对话框查看代码")
-                    stock_code, market_code = self.stoke_codes[stock_name]
+                    stock_code, market_code = self.stock_storage.get(stock_name)
                 else:
                     stock = self.withdraw_dialog_cancel_when(i, lambda stock: True)
                     if stock is not None:
                         stock_code = stock["stock_code"]
                         market_code = stock["market_code"]
                         # 存入字典下次不再需要打开股票对话框查看代码
-                        if stock_name not in self.stoke_codes and stock_code is not None and market_code is not None:
-                            self.stoke_codes[stock_name] = (stock_code, market_code)
+                        if not self.stock_storage.has(stock_name) and stock_code is not None and market_code is not None:
+                            self.stock_storage.set(stock_name,(stock_code, market_code))
             try:
                 withdrawals.append({
                     "stock_code": stock_code,
