@@ -9,7 +9,7 @@ class THSWithdrawal:
         self.env = env
 
     def resolve(self, quot_stocks):
-        log.debug("撤单处理开始")
+        log.debug("撤单分析开始...")
         satisfy_stocks = []
         for s in quot_stocks:
             cur_stock = dict(s)

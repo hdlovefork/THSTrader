@@ -6,12 +6,16 @@ import os
 LOGLEVEL = os.getenv("LOGLEVEL", "DEBUG")
 
 log = logging.getLogger("PYTHS")
-
-log.setLevel(LOGLEVEL)
-ch = logging.StreamHandler()
-ch.setLevel(LOGLEVEL)
-# create formatter
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# add formatter to ch
-ch.setFormatter(formatter)
-log.addHandler(ch)
+log.setLevel(LOGLEVEL)
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(LOGLEVEL)
+console_handler.setFormatter(formatter)
+
+file_handler = logging.FileHandler('app.log')
+file_handler.setLevel(LOGLEVEL)
+file_handler.setFormatter(formatter)
+
+log.addHandler(console_handler)
+log.addHandler(file_handler)
