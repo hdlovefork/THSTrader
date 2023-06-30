@@ -44,7 +44,7 @@ class QuotationWatcher:
             except Exception as e:
                 log.exception("——监控股票行情出错: %s" % e)
             self.stop_event.wait(self.wait_interval)
-        log.info("——监控股票行情退出")
+        log.info("——监控股票行情已退出")
 
     def start(self):
         self.worker_thread = threading.Thread(target=self.__worker,name="QuotationWatcher")

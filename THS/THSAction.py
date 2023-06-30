@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import os
 import threading
@@ -5,6 +6,7 @@ import time
 import xml.etree.ElementTree as ET
 
 import uiautomator2 as u2
+from uiautomator2.exceptions import XPathElementNotFoundError
 
 from THS.Storage import Storage
 from THS.__ini__ import calc_insert_stocks, calc_delete_stocks
@@ -60,14 +62,13 @@ class THSAction:
         if not self.enter_withdrawals_page():
             return []
         withdrawals = []
-        root = self.__withdrawal_page_root
-        count = len(root().child('*').all())
-        log.debug(f"——撤单列表有{count}个元素")
-        for i in range(count):
+        i = 0
+        while True:
             s = self.get_withdrawal_stock_at(i, view_code)
             if s is None:
                 break
             withdrawals.append(s)
+            i += 1
         self.last_withdrawal_stocks = withdrawals
         return withdrawals
 
@@ -266,24 +267,21 @@ class THSAction:
 
     def get_withdrawal_stock_at(self, i, view_code=True):
         root = self.__withdrawal_page_root
-        # 空列表，则说明是最后一行，不用再找了
-        if root().child(f'*[{i + 1}]').child(
-                '*[@resource-id="com.hexin.plat.android:id/chedan_empty_layout"]').exists:
-            log.debug("——当前没有可撤委托单")
-            return None
-        # 如果有个元素它下面有文字是"其它",则说明是最后一行，不用再找了
-        if root().child(f'*[{i + 1}]').child(
-                '*[@resource-id="com.hexin.plat.android:id/cannot_chedan_title_text"]').exists:
-            log.debug("——到其它了，不用再找了")
-            return None
-        # 全撤、撤买、撤卖按钮组，则说明是最后一行，不用再找了
-        if root().child(f'*[{i + 1}]').xpath('@com.hexin.plat.android:id/gdqc_layout').exists:
-            log.debug("——到全撤、撤买、撤卖按钮组了，不用再找了")
-            return None
         stock_code = None
         market_code = None
-        stock_name = root().child(f'android.widget.LinearLayout[{i + 1}]').child(
-            '//*[@resource-id="com.hexin.plat.android:id/result0"]').get_text()
+        try:
+            stock_name = root().child(f'*[{i + 1}]').child(
+                '//*[@resource-id="com.hexin.plat.android:id/result0"]').get_text()
+            if stock_name == "":
+                log.debug(f"——当前第{i + 1}个元素的股票名称不应该为空字符串")
+                raise XPathElementNotFoundError
+        except XPathElementNotFoundError:
+            log.debug("——当前没有可撤委托单")
+            return None
+        except Exception as e:
+            log.error(f"——获取股票名称出错：{e}")
+            return None
+        log.debug(f"——当前第{i + 1}个元素的股票名称是{stock_name}")
         if view_code:
             # 需要查看股票代码
             log.debug(f"——查看第{i + 1}个元素的股票代码")
@@ -298,25 +296,24 @@ class THSAction:
                     # 存入字典下次不再需要打开股票对话框查看代码
                     if not self.stock_storage.has(stock_name) and stock_code is not None and market_code is not None:
                         self.stock_storage.set(stock_name, (stock_code, market_code))
-        try:
-            return {
-                "stock_code": stock_code,
-                "market_code": market_code,
-                "stock_name": stock_name,
-                "withdraw_time": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
-                    '//*[@resource-id="com.hexin.plat.android:id/result1"]').get_text(),
-                # "withdraw_price": float(root().child(f'android.widget.LinearLayout[{i + 1}]').child(
-                #     '//*[@resource-id="com.hexin.plat.android:id/result2"]').get_text()),
-                # "withdraw_count": int(root().child(f'android.widget.LinearLayout[{i + 1}]').child(
-                #     '//*[@resource-id="com.hexin.plat.android:id/first_tv"]').get_text()),
-                "withdraw_direct": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
-                    '//*[@resource-id="com.hexin.plat.android:id/result6"]').get_text(),
-                # "withdraw_status": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
-                #     '//*[@resource-id="com.hexin.plat.android:id/result7"]').get_text()
-            }
-        except:
-            # 有可能页面已经改变，导致找不到元素
-            return None
+        return {
+            "stock_code": stock_code,
+            "market_code": market_code,
+            "stock_name": stock_name,
+            "withdraw_direct": "买入",
+            # 当前系统时间
+            "withdraw_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            # "withdraw_time": root().child(f'*[{i + 1}]').child(
+            #     '//*[@resource-id="com.hexin.plat.android:id/result1"]').get_text(),
+            # "withdraw_direct": root().child(f'*[{i + 1}]').child(
+            #     '//*[@resource-id="com.hexin.plat.android:id/result6"]').get_text(),
+            # "withdraw_price": float(root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+            #     '//*[@resource-id="com.hexin.plat.android:id/result2"]').get_text()),
+            # "withdraw_count": int(root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+            #     '//*[@resource-id="com.hexin.plat.android:id/first_tv"]').get_text()),
+            # "withdraw_status": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
+            #     '//*[@resource-id="com.hexin.plat.android:id/result7"]').get_text()
+        }
 
 
 class THSWithdrawWatcher:
@@ -379,6 +376,7 @@ class THSWithdrawWatcher:
                 except Exception as e:
                     log.exception(f"——监控撤单页面变化时出错：{e}")
             self.stop_event.wait(self.wait_interval)
+        log.info("——监控撤单页面变化线程已退出")
 
     def __calc_md5(self, content):
         log.debug("计算页面的md5")

@@ -9,7 +9,7 @@ tools/ips.toml
 dist/
 build/
 main.spec
-app.log
+logs/
 cache.json
 ips.toml
 *.spec
