@@ -1,7 +1,5 @@
 import json
 
-import toml
-
 
 class Storage:
     def __init__(self,filename='cache.json'):
@@ -41,7 +39,4 @@ class Storage:
 
     def clear(self):
         self.cache = {}
-        self.save_cache()
-
-    def __del__(self):
         self.save_cache()
