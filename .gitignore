@@ -5,4 +5,11 @@ __pycache__
 # Ignore dynaconf secret files
 .secrets.*
 .env.toml
-bin/ips.toml
+tools/ips.toml
+dist/
+build/
+main.spec
+app.log
+cache.json
+ips.toml
+*.spec

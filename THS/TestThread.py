@@ -18,7 +18,7 @@ class TestThread:
             self.stop_event.wait(self.wait_interval)
 
     def start(self):
-        self.worker_thread = threading.Thread(target=self.__worker)
+        self.worker_thread = threading.Thread(target=self.__worker,name="TestThread")
         self.worker_thread.start()
 
     def stop(self):

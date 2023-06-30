@@ -10,7 +10,7 @@ from THS.TdxHqPool_API import TdxHqPool_API
 def load_ips(path):
     # 判断bin/ips.toml文件是否存在，不存在则抛出文件不存在异常
     if not os.path.exists(path):
-        raise FileNotFoundError(f'{path}文件不存在，请先进入bin目录执行check命令')
+        raise FileNotFoundError(f'{path}文件不存在，请先执行check命令')
     # 读取bin/ips.toml文件
     with open(path, 'r') as f:
         config = toml.load(f)

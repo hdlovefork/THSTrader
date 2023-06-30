@@ -31,18 +31,23 @@ class QuotationWatcher:
     def __worker(self):
         log.info("正在监控股票行情...")
         while not self.stop_event.is_set():
-            if self.quote_callback is not None and len(self.watch_stocks) > 0:
-                stocks = [(s['market_code'], s['stock_code']) for s in self.watch_stocks]
-                quot_stocks = self.quotation.get_security_quotes(stocks)
-                log.debug("——获取到股票行情: %s" % quot_stocks)
-                # 在返回的行情数据里面添加股票名称name
-                self.add_stock_name(quot_stocks)
-                self.quote_callback(quot_stocks)
+            try:
+                if self.quote_callback is not None and isinstance(self.watch_stocks, (list, tuple)) and len(
+                        self.watch_stocks) > 0:
+                    stocks = [(s['market_code'], s['stock_code']) for s in self.watch_stocks]
+                    quot_stocks = self.quotation.get_security_quotes(stocks)
+                    if isinstance(quot_stocks, (list, tuple)) and len(quot_stocks) > 0:
+                        log.debug("——获取到股票行情: %s" % quot_stocks)
+                        # 在返回的行情数据里面添加股票名称name
+                        self.add_stock_name(quot_stocks)
+                        self.quote_callback(quot_stocks)
+            except Exception as e:
+                log.exception("——监控股票行情出错: %s" % e)
             self.stop_event.wait(self.wait_interval)
         log.info("——监控股票行情退出")
 
     def start(self):
-        self.worker_thread = threading.Thread(target=self.__worker)
+        self.worker_thread = threading.Thread(target=self.__worker,name="QuotationWatcher")
         self.worker_thread.start()
 
     def stop(self):

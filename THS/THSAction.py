@@ -334,7 +334,7 @@ class THSWithdrawWatcher:
         self.stop()
 
     def start(self):
-        self.worker_thread = threading.Thread(target=self.__worker)
+        self.worker_thread = threading.Thread(target=self.__worker,name="THSWithdrawWatcher")
         self.worker_thread.start()
 
     def stop(self):
@@ -349,33 +349,35 @@ class THSWithdrawWatcher:
         last_stocks = []
         while not self.stop_event.is_set():
             with self.withdrawal_list_lock:
-                if self.trader.enter_withdrawals_page():
-                    content = self.trader.withdrawals_page_hierarchy()
-                    if content is None:
-                        continue
-                    current = self.__calc_md5(content)
-                    if last != current:
-                        log.debug(f'——last: {last}, current: {current}\n{content}')
-                        last = current
-                        log.debug("——撤单页面发生变化")
-                        # 获取变化的股票
-                        stocks = self.trader.get_avail_withdrawals_ex()
-                        # 获取当前持仓股票与上一次持仓股票的差集
-                        if self.insert_stock_callback is not None:
-                            log.debug(f"计算插入的差集 last_stocks:{last_stocks} stocks: {stocks}")
-                            insert_stocks = calc_insert_stocks(last_stocks, stocks)
-                            if len(insert_stocks) > 0:
-                                log.info(f"——发现新增股票：{insert_stocks}")
-                                self.insert_stock_callback(insert_stocks)
-                        if self.delete_stock_callback is not None:
-                            log.debug(f"计算删除的差集 last_stocks:{last_stocks} stocks: {stocks}")
-                            delete_stocks = calc_delete_stocks(last_stocks, stocks)
-                            if len(delete_stocks) > 0:
-                                log.info(f"——发现删除股票：{delete_stocks}")
-                                self.delete_stock_callback(delete_stocks)
-                        last_stocks.clear()
-                        last_stocks.extend(stocks)
-
+                try:
+                    if self.trader.enter_withdrawals_page():
+                        content = self.trader.withdrawals_page_hierarchy()
+                        if content is None:
+                            continue
+                        current = self.__calc_md5(content)
+                        if last != current:
+                            log.debug(f'——last: {last}, current: {current}\n{content}')
+                            last = current
+                            log.debug("——撤单页面发生变化")
+                            # 获取变化的股票
+                            stocks = self.trader.get_avail_withdrawals_ex()
+                            # 获取当前持仓股票与上一次持仓股票的差集
+                            if self.insert_stock_callback is not None:
+                                log.debug(f"计算插入的差集 last_stocks:{last_stocks} stocks: {stocks}")
+                                insert_stocks = calc_insert_stocks(last_stocks, stocks)
+                                if len(insert_stocks) > 0:
+                                    log.info(f"——发现新增股票：{insert_stocks}")
+                                    self.insert_stock_callback(insert_stocks)
+                            if self.delete_stock_callback is not None:
+                                log.debug(f"计算删除的差集 last_stocks:{last_stocks} stocks: {stocks}")
+                                delete_stocks = calc_delete_stocks(last_stocks, stocks)
+                                if len(delete_stocks) > 0:
+                                    log.info(f"——发现删除股票：{delete_stocks}")
+                                    self.delete_stock_callback(delete_stocks)
+                            last_stocks.clear()
+                            last_stocks.extend(stocks)
+                except Exception as e:
+                    log.exception(f"——监控撤单页面变化时出错：{e}")
             self.stop_event.wait(self.wait_interval)
 
     def __calc_md5(self, content):
