@@ -83,8 +83,8 @@ class THSAction:
                 log.debug("——股票撤单对话框出现")
                 stock['stock_name'] = self.d.xpath('@com.hexin.plat.android:id/stockname_textview').get_text()
                 stock['stock_code'] = self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').get_text()
-                stock['stock_name'] = stock['stock_name'].replace('名称', '').replace(' ', '')
-                stock['stock_code'] = stock['stock_code'].replace('代码', '').replace(' ', '')
+                stock['stock_name'] = stock['stock_name'].replace('名称  ', '')
+                stock['stock_code'] = stock['stock_code'].replace('代码  ', '')
                 stock['market_code'] = 0 if int(stock['stock_code'][0]) == 0 else 1
                 log.debug("——股票代码：{} 股票名称：{}".format(stock['stock_code'], stock['stock_name']))
                 return stock
