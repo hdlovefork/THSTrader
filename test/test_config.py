@@ -12,11 +12,11 @@ class TestConfig(unittest.TestCase):
             settings_files=['.env.toml'],
         )
 
-    def test_can_get_serialno(self):
-        self.assertEqual('127.0.0.1:62001', self.settings.serialno)
+    def test_can_get_serial_no(self):
+        self.assertEqual('2623729', self.settings.serial_no)
 
     def test_can_get_trade_top_withdraw(self):
-        self.assertEqual(0.3, self.settings('trade.withdrawal.top.buy1', None))
+        self.assertEqual(0.3, self.settings('withdrawal.top.bid_vol1', None))
 
     def test_path(self):
         print(__file__)

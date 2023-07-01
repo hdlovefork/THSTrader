@@ -9,8 +9,8 @@ from log import log
 class App:
     def __init__(self, env):
         self.env = env
-        self.trader = THSAction(env.serialno)
-        self.quotation = THSQuotation(env.ipspath)
+        self.trader = THSAction(env.serial_no)
+        self.quotation = THSQuotation(env.ips_path)
         self.quotation_watcher = QuotationWatcher(self.quotation, self.__listen_quotation)
         self.watcher = THSWithdrawWatcher(self.trader, self.__insert_stocks, self.__delete_stocks)
         self.withdrawals = THSWithdrawal(self.trader,env)

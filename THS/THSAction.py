@@ -80,17 +80,17 @@ class THSAction:
             time.sleep(.1)
             if self.d.xpath('@com.hexin.plat.android:id/title_view').wait():
                 stock = {}
-                log.debug("——股票撤单对话框出现")
+                log.debug("股票撤单对话框出现")
                 stock['stock_name'] = self.d.xpath('@com.hexin.plat.android:id/stockname_textview').get_text()
                 stock['stock_code'] = self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').get_text()
                 stock['stock_name'] = stock['stock_name'].replace('名称  ', '')
                 stock['stock_code'] = stock['stock_code'].replace('代码  ', '')
                 stock['market_code'] = 0 if int(stock['stock_code'][0]) == 0 else 1
-                log.debug("——股票代码：{} 股票名称：{}".format(stock['stock_code'], stock['stock_name']))
+                log.debug("股票代码：{} 股票名称：{}".format(stock['stock_code'], stock['stock_name']))
                 return stock
         except:
             pass
-        log.debug("——股票撤单对话框未出现")
+        log.debug("股票撤单对话框未出现")
         return None
 
     def withdraw_dialog_when(self, i, when, then):
@@ -235,12 +235,12 @@ class THSAction:
         """ 进入撤单页面 """
         log.debug("进入撤单页面")
         if not self.in_withdrawals_page():
-            log.debug("——不在撤单页面，尝试进入撤单页面")
-            self.__back_to_trade_page(os.getenv("APPENV"), lambda: self.in_withdrawals_page())
+            log.debug("不在撤单页面，尝试进入撤单页面")
+            self.__back_to_trade_page(os.getenv("APP_ENV"), lambda: self.in_withdrawals_page())
             if not self.in_withdrawals_page():
                 self.click("交易面板撤单按钮", True)
                 return self.in_withdrawals_page()
-        log.debug("——已在撤单页面")
+        log.debug("已在撤单页面")
         return True
 
     def withdrawals_page_hierarchy(self):
@@ -273,20 +273,20 @@ class THSAction:
             stock_name = root().child(f'*[{i + 1}]').child(
                 '//*[@resource-id="com.hexin.plat.android:id/result0"]').get_text()
             if stock_name == "":
-                log.debug(f"——当前第{i + 1}个元素的股票名称不应该为空字符串")
+                log.debug(f"当前第{i + 1}个元素的股票名称不应该为空字符串")
                 raise XPathElementNotFoundError
         except XPathElementNotFoundError:
-            log.debug("——当前没有可撤委托单")
+            log.debug("当前没有可撤委托单")
             return None
         except Exception as e:
-            log.error(f"——获取股票名称出错：{e}")
+            log.error(f"获取股票名称出错：{e}")
             return None
-        log.debug(f"——当前第{i + 1}个元素的股票名称是{stock_name}")
+        log.debug(f"当前第{i + 1}个元素的股票名称是{stock_name}")
         if view_code:
             # 需要查看股票代码
-            log.debug(f"——查看第{i + 1}个元素的股票代码")
+            log.debug(f"查看第{i + 1}个元素的股票代码")
             if self.stock_storage.has(stock_name):
-                log.debug(f"——股票代码已经存在字典中，不用再打开股票对话框查看代码")
+                log.debug(f"股票代码已经存在字典中，不用再打开股票对话框查看代码")
                 stock_code, market_code = self.stock_storage.get(stock_name)
             else:
                 stock = self.withdraw_dialog_cancel_when(i, lambda stock: True)
@@ -353,9 +353,9 @@ class THSWithdrawWatcher:
                             continue
                         current = self.__calc_md5(content)
                         if last != current:
-                            log.debug(f'——last: {last}, current: {current}\n{content}')
+                            log.debug(f'last: {last}, current: {current}\n{content}')
                             last = current
-                            log.debug("——撤单页面发生变化")
+                            log.debug("撤单页面发生变化")
                             # 获取变化的股票
                             stocks = self.trader.get_avail_withdrawals_ex()
                             # 获取当前持仓股票与上一次持仓股票的差集
@@ -363,20 +363,20 @@ class THSWithdrawWatcher:
                                 log.debug(f"计算插入的差集 last_stocks:{last_stocks} stocks: {stocks}")
                                 insert_stocks = calc_insert_stocks(last_stocks, stocks)
                                 if len(insert_stocks) > 0:
-                                    log.info(f"——发现新增股票：{insert_stocks}")
+                                    log.info(f"发现新增股票：{insert_stocks}")
                                     self.insert_stock_callback(insert_stocks)
                             if self.delete_stock_callback is not None:
                                 log.debug(f"计算删除的差集 last_stocks:{last_stocks} stocks: {stocks}")
                                 delete_stocks = calc_delete_stocks(last_stocks, stocks)
                                 if len(delete_stocks) > 0:
-                                    log.info(f"——发现删除股票：{delete_stocks}")
+                                    log.info(f"发现删除股票：{delete_stocks}")
                                     self.delete_stock_callback(delete_stocks)
                             last_stocks.clear()
                             last_stocks.extend(stocks)
                 except Exception as e:
-                    log.exception(f"——监控撤单页面变化时出错：{e}")
+                    log.exception(f"监控撤单页面变化时出错：{e}")
             self.stop_event.wait(self.wait_interval)
-        log.info("——监控撤单页面变化线程已退出")
+        log.info("监控撤单页面变化线程已退出")
 
     def __calc_md5(self, content):
         log.debug("计算页面的md5")

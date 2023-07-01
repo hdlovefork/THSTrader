@@ -8,7 +8,7 @@ from test import measure_time
 
 class TestXPath(unittest.TestCase):
     def setUp(self) -> None:
-        self.d = u2.connect_usb(os.getenv("SERIALNO"))
+        self.d = u2.connect_usb(os.getenv("SERIAL_NO"))
 
     def test_withdraw_click(self):
         self.d.xpath('//*[@content-desc="交易"]/android.widget.ImageView[1]').click()

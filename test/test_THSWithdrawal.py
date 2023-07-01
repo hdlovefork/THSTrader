@@ -7,7 +7,7 @@ from THS.THSWithdrawal import THSWithdrawal
 
 class TestTHSWithdrawal(unittest.TestCase):
     def setUp(self) -> None:
-        self.action = THSAction(env.serialno)
+        self.action = THSAction(env.serial_no)
         self.withdrawal = THSWithdrawal(self.action, env)
 
     def test_resolve_when_tick_bid_vol1_less_than_env_bid_vol1(self):

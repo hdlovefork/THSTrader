@@ -13,7 +13,7 @@ class THSWithdrawal:
         satisfy_stocks = []
         for s in quot_stocks:
             cur_stock = dict(s)
-            log.debug("——当前股票：{}".format(cur_stock))
+            log.debug("当前股票：{}".format(cur_stock))
             '''
             cur_stock数据结构：
             {'market': 0, 'code': '000010', 'active1': 0, 'price': 0.0, 'last_close': 2.08, 'open': 0.0, 
@@ -37,7 +37,7 @@ class THSWithdrawal:
             # 如果self.withdrawal_stocks中没有该stock.code，则添加
             if cur_stock['code'] not in self.last_tick:
                 self.last_tick[cur_stock['code']] = cur_stock
-                log.debug("——添加股票行情：%s,%s" % (cur_stock['code'], cur_stock['name']))
+                log.debug("添加股票行情：%s,%s" % (cur_stock['code'], cur_stock['name']))
                 continue
             # 如果self.withdrawal_stocks中有该stock.code，则更新
             else:
@@ -54,9 +54,9 @@ class THSWithdrawal:
             if is_withdrawal:
                 satisfy_stocks.extend(self.do_withdraw(cur_stock))
             else:
-                log.debug("——更新股票行情：%s,%s" % (cur_stock['code'], cur_stock['name']))
+                log.debug("更新股票行情：%s,%s" % (cur_stock['code'], cur_stock['name']))
                 self.last_tick[cur_stock['code']].update(cur_stock)
-        log.debug("——撤单处理结束，满足条件的股票：%s" % satisfy_stocks)
+        log.debug("撤单处理结束，满足条件的股票：%s" % satisfy_stocks)
         return satisfy_stocks
 
     def do_withdraw(self, cur_stock):
@@ -65,5 +65,5 @@ class THSWithdrawal:
         # 撤单后，从行情tick记录中删除该股票
         if cur_stock['code'] in self.last_tick:
             self.last_tick.pop(cur_stock['code'])
-        log.debug("——已撤单股票：%s" % withdrew_stocks)
+        log.debug("已撤单股票：%s" % withdrew_stocks)
         return withdrew_stocks

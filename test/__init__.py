@@ -1,15 +1,7 @@
-import os
 import time
+import env as env
 
-from dynaconf import Dynaconf
-
-env = Dynaconf(
-        envvar_prefix="DYNACONF",
-        settings_files=['.env.toml'],
-    )
-
-os.environ['APPENV'] = env.appenv
-os.environ['SERIALNO'] = env.serialno
+env = env.load()
 
 def measure_time(func, *args, **kwargs):
         start_time = time.time()

@@ -8,7 +8,7 @@ from THS.THSQuotation import THSQuotation
 
 class TestTHSQuotation(unittest.TestCase):
     def setUp(self) -> None:
-        self.quotation = THSQuotation(os.path.join('../','bin', 'ips.toml'))
+        self.quotation = THSQuotation('ips.toml')
 
     def test_get_xdxr_info(self):
         print(self.quotation.get_security_quotes(1, '601177'))

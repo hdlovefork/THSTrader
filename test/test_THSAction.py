@@ -7,7 +7,7 @@ from test import env, measure_time
 
 class TestTHSAction(unittest.TestCase):
     def setUp(self) -> None:
-        self.action = THSAction(env.serialno)
+        self.action = THSAction(env.serial_no)
 
     def test_withdrawals(self):
         withdrawals = measure_time(self.action.get_avail_withdrawals_ex)

@@ -37,14 +37,14 @@ class QuotationWatcher:
                     stocks = [(s['market_code'], s['stock_code']) for s in self.watch_stocks]
                     quot_stocks = self.quotation.get_security_quotes(stocks)
                     if isinstance(quot_stocks, (list, tuple)) and len(quot_stocks) > 0:
-                        log.debug("——获取到股票行情: %s" % quot_stocks)
+                        log.debug("获取到股票行情: %s" % quot_stocks)
                         # 在返回的行情数据里面添加股票名称name
                         self.add_stock_name(quot_stocks)
                         self.quote_callback(quot_stocks)
             except Exception as e:
-                log.exception("——监控股票行情出错: %s" % e)
+                log.exception("监控股票行情出错: %s" % e)
             self.stop_event.wait(self.wait_interval)
-        log.info("——监控股票行情已退出")
+        log.info("监控股票行情已退出")
 
     def start(self):
         self.worker_thread = threading.Thread(target=self.__worker,name="QuotationWatcher")
