@@ -8,28 +8,57 @@
 
 ## 运行时所需依赖
 ### 1. Python依赖
-我使用的是Python3.9.1，以上版本应该也可以
+我使用的是Python3.9.1，请务必使用该版本，否则可能会出现无法正常运行的情况。
+> windows下载地址：https://www.python.org/downloads/windows/
+> macos下载地址：https://www.python.org/downloads/macos/
+
+### 2. 下载项目并安装依赖
 ``` bash
 git clone https://github.com/nladuo/THSTrader.git
 cd THSTrader
 pip install -r requirements.txt
 ```
-* 安装依赖过程中如果有报错，请将下面内容添加到hosts文件中：
+> 安装依赖过程中如果有报错，请将下面内容添加到hosts文件中：
 ```bash
 185.199.109.133 raw.githubusercontent.com
 ```
 
-### 2. 安装夜神模拟器（支持Mac、Windows、Linux）
+### 3. 安装夜神模拟器（支持Mac、Windows、Linux）
 下载链接：[https://www.yeshen.com/](https://www.yeshen.com/)
 
-### 3. 配置模拟器分辨率
+### 4. 配置模拟器分辨率
 与屏幕分辨率无关
 
-### 4. 安装同花顺APP
+### 5. 安装同花顺APP
 在模拟器上安装同花顺APP，模拟器上用浏览器打开链接：[http://focus.10jqka.com.cn/special/phone/wapsubject_8299.shtml](http://focus.10jqka.com.cn/special/phone/wapsubject_8299.shtml) 
 
-## 二次开发用到的工具
-### 查看[uiautomatorviewer](uiautomatorviewer/README.md)的使用方法
+### 6. 查看模拟器或真机serial_no（推荐使用真机）
+* 模拟器推荐夜神支持Mac、Windows、Linux 
+* 真机推荐安卓手机，本项目在小米12手机上测试通过
+
+```bash
+# 查看方法如下：
+# 1.进入uiautomatorviewer目录
+cd uiautomatorviewer
+# 2.连接模拟器或真机
+./adb kill-server
+#   a.连接手机示例
+./adb devices
+#   b.连接夜神模拟器示例
+#   夜神模拟器默认serial_no为127.0.0.1:62001，其它模拟器请自行查看
+./adb connect 127.0.0.1:62001
+```
+当通过上面步骤连接好模拟器或真机后，按下面所示输入`./adb devices`命令，如果看到类似下面的输出，那么就说明连接成功了：
+```bash
+➜  uiautomatorviewer ./adb devices
+* daemon not running; starting now at tcp:5037
+* daemon started successfully
+List of devices attached
+acfd70a2	unauthorized
+```
+这里看到的`acfd70a2`就是serial_no，如果是夜神模拟器，那么serial_no为`127.0.0.1:62001`
+，然后请将这个serial_no填入.env.toml文件中的`serial_no`字段
+
 ## 运行程序
 ### 1. 获取可用行情服务器的ip，进入bin/目录下运行：
 ``` bash
@@ -38,6 +67,8 @@ python check.py
     --num: 获取可用服务器的数量（默认为5个）
     --out: 输出到文件的路径（默认为当前目录下的ips.toml）
 ```
+> check程序会自动测试并获取可用的行情服务器ip，然后将可用的ip写入到ips.toml文件中，会按照速度从快到慢的顺序排列，速度越快，排在越前面。
+
 ### 2. 复制配置文件，然后根据需要修改配置文件：
 ``` bash
 cp .env.toml.example .env.toml
@@ -47,3 +78,6 @@ cp .env.toml.example .env.toml
 ``` bash
 python main.py
 ```
+
+## 二次开发用到的工具
+### 查看[uiautomatorviewer](uiautomatorviewer/README.md)的使用方法

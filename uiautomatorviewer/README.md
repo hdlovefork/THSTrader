@@ -12,3 +12,4 @@ cd uiautomatorviewer
 ```bash
 java -XstartOnFirstThread -jar uiautomatorviewer-standalone-1.1-all.jar
 ```
+> 注意：当运行THSTrader/main.py后，需要重启模拟器或真机才能通过uiautomatorviewer查看到界面元素，否则它连接时会报错
