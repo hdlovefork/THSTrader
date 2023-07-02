@@ -6,6 +6,7 @@ import time
 import xml.etree.ElementTree as ET
 
 import uiautomator2 as u2
+from pytdx.params import TDXParams
 from uiautomator2.exceptions import XPathElementNotFoundError
 
 from THS.Storage import Storage
@@ -73,19 +74,36 @@ class THSAction:
         return withdrawals
 
     def withdraw_dialog(self, i):
+        """
+        撤单对话框
+        :param i: 点击撤单列表第i个元素,i从0开始
+        :return:
+        返回股票信息（含股票代码stock_code、股票名称stock_name、市场代码）
+        dict: {
+            'stock_code': '600000',
+            'stock_name': '浦发银行',
+            'market_code': '1',
+        }
+        """
         root = self.__withdrawal_page_root
         try:
             log.debug("点击撤单列表第{}个元素".format(i + 1))
             root().child(f'*[{i + 1}]').click()
             time.sleep(.1)
             if self.d.xpath('@com.hexin.plat.android:id/title_view').wait():
-                stock = {}
+                stock = {'stock_code': '', 'stock_name': ''}
                 log.debug("股票撤单对话框出现")
-                stock['stock_name'] = self.d.xpath('@com.hexin.plat.android:id/stockname_textview').get_text()
                 stock['stock_code'] = self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').get_text()
-                stock['stock_name'] = stock['stock_name'].replace('名称  ', '')
                 stock['stock_code'] = stock['stock_code'].replace('代码  ', '')
-                stock['market_code'] = 0 if int(stock['stock_code'][0]) == 0 else 1
+                # 如果股票代码不是以0、3、6开头，则不是沪深股票，不处理
+                if stock['stock_code'] and stock['stock_code'][0] not in ['0', '3', '6']:
+                    log.debug("股票代码：{} 不是沪深股票，不处理".format(stock['stock_code']))
+                    return stock
+                stock['stock_name'] = self.d.xpath('@com.hexin.plat.android:id/stockname_textview').get_text()
+                stock['stock_name'] = stock['stock_name'].replace('名称  ', '')
+                stock['market_code'] = TDXParams.MARKET_SZ
+                if int(stock['stock_code'][0]) == 6:
+                    stock['market_code'] = TDXParams.MARKET_SH
                 log.debug("股票代码：{} 股票名称：{}".format(stock['stock_code'], stock['stock_name']))
                 return stock
         except:
@@ -266,6 +284,11 @@ class THSAction:
         return self.d.xpath(f"//*[@resource-id='{PAGE_INDICATOR['撤单列表']}']")
 
     def get_withdrawal_stock_at(self, i, view_code=True):
+        """
+            获取第i个撤单股票的信息
+            :param i: 第i个撤单股票
+            :param view_code: 是否需要查看股票代码
+        """
         root = self.__withdrawal_page_root
         stock_code = None
         market_code = None
@@ -296,6 +319,9 @@ class THSAction:
                     # 存入字典下次不再需要打开股票对话框查看代码
                     if not self.stock_storage.has(stock_name) and stock_code is not None and market_code is not None:
                         self.stock_storage.set(stock_name, (stock_code, market_code))
+        if market_code is None or stock_code is None:
+            log.info(f"第{i + 1}个元素的股票代码为空或者不是沪深股票")
+            return None
         return {
             "stock_code": stock_code,
             "market_code": market_code,
@@ -342,7 +368,7 @@ class THSWithdrawWatcher:
 
     def __worker(self):
         log.info("正在监控撤单页面变化...")
-        last = None
+        last_md5 = ''
         last_stocks = []
         while not self.stop_event.is_set():
             with self.withdrawal_list_lock:
@@ -351,33 +377,39 @@ class THSWithdrawWatcher:
                         content = self.trader.withdrawals_page_hierarchy()
                         if content is None:
                             continue
-                        current = self.__calc_md5(content)
-                        if last != current:
-                            log.debug(f'last: {last}, current: {current}\n{content}')
-                            last = current
-                            log.debug("撤单页面发生变化")
-                            # 获取变化的股票
-                            stocks = self.trader.get_avail_withdrawals_ex()
-                            # 获取当前持仓股票与上一次持仓股票的差集
-                            if self.insert_stock_callback is not None:
-                                log.debug(f"计算插入的差集 last_stocks:{last_stocks} stocks: {stocks}")
-                                insert_stocks = calc_insert_stocks(last_stocks, stocks)
-                                if len(insert_stocks) > 0:
-                                    log.info(f"发现新增股票：{insert_stocks}")
-                                    self.insert_stock_callback(insert_stocks)
-                            if self.delete_stock_callback is not None:
-                                log.debug(f"计算删除的差集 last_stocks:{last_stocks} stocks: {stocks}")
-                                delete_stocks = calc_delete_stocks(last_stocks, stocks)
-                                if len(delete_stocks) > 0:
-                                    log.info(f"发现删除股票：{delete_stocks}")
-                                    self.delete_stock_callback(delete_stocks)
-                            last_stocks.clear()
-                            last_stocks.extend(stocks)
+                        last_md5 = self.__resolve_page_change(content, last_md5, last_stocks)
                 except Exception as e:
                     log.exception(f"监控撤单页面变化时出错：{e}")
             self.stop_event.wait(self.wait_interval)
         log.info("监控撤单页面变化线程已退出")
 
+    def __resolve_page_change(self, content, last_md5, last_stocks):
+        current = self.__calc_md5(content)
+        if last_md5 != current:
+            log.debug(f'last: {last_md5}, current: {current}\n{content}')
+            log.debug("撤单页面发生变化")
+            # 获取变化的股票
+            stocks = self.trader.get_avail_withdrawals_ex()
+            self.__invoke_callback(last_stocks, stocks)
+            last_stocks.clear()
+            last_stocks.extend(stocks)
+        return current
+
     def __calc_md5(self, content):
         log.debug("计算页面的md5")
         return hashlib.md5(content.encode()).hexdigest()
+
+    def __invoke_callback(self, last_stocks, stocks):
+        # 获取当前持仓股票与上一次持仓股票的差集
+        if self.insert_stock_callback is not None:
+            log.debug(f"计算插入的差集 last_stocks:{last_stocks} stocks: {stocks}")
+            insert_stocks = calc_insert_stocks(last_stocks, stocks)
+            if len(insert_stocks) > 0:
+                log.info(f"发现新增股票：{insert_stocks}")
+                self.insert_stock_callback(insert_stocks)
+        if self.delete_stock_callback is not None:
+            log.debug(f"计算删除的差集 last_stocks:{last_stocks} stocks: {stocks}")
+            delete_stocks = calc_delete_stocks(last_stocks, stocks)
+            if len(delete_stocks) > 0:
+                log.info(f"发现删除股票：{delete_stocks}")
+                self.delete_stock_callback(delete_stocks)
