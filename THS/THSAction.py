@@ -57,7 +57,7 @@ class THSAction:
         # 保存股票名称和股票代码的映射
         self.stock_storage = Storage()
 
-    def get_avail_withdrawals_ex(self, view_code=True):
+    def get_avail_withdrawals_ex(self, view_code=True, direct_sensitive=False):
         """ 获取可以撤单的列表 """
         log.debug("获取可以撤单的列表")
         if not self.enter_withdrawals_page():
@@ -65,7 +65,7 @@ class THSAction:
         withdrawals = []
         i = 0
         while True:
-            s = self.get_withdrawal_stock_at(i, view_code)
+            s = self.get_withdrawal_stock_at(i, view_code, direct_sensitive)
             if s is None:
                 break
             withdrawals.append(s)
@@ -129,7 +129,7 @@ class THSAction:
     def withdraw_dialog_cancel_when(self, i, when):
         return self.withdraw_dialog_when(i, when, lambda stock: self.click('撤单取消'))
 
-    def withdraw(self, stock_name, when=None):
+    def withdraw(self, stock_name, when=None, direct_sensitive=False):
         """ 撤单 """
         # 已经完成的撤单列表
         satisfy_withdrawals = []
@@ -143,7 +143,7 @@ class THSAction:
                 if not self.enter_withdrawals_page():
                     continue
                 if self.last_withdrawal_stocks is None:
-                    self.last_withdrawal_stocks = self.get_avail_withdrawals_ex(False)
+                    self.last_withdrawal_stocks = self.get_avail_withdrawals_ex(False, direct_sensitive)
                 i = 0
                 while i < len(self.last_withdrawal_stocks):
                     stock = self.last_withdrawal_stocks[i]
@@ -283,11 +283,12 @@ class THSAction:
     def __withdrawal_page_root(self):
         return self.d.xpath(f"//*[@resource-id='{PAGE_INDICATOR['撤单列表']}']")
 
-    def get_withdrawal_stock_at(self, i, view_code=True):
+    def get_withdrawal_stock_at(self, i, view_code=True, direct_sensitive=False):
         """
             获取第i个撤单股票的信息
             :param i: 第i个撤单股票
             :param view_code: 是否需要查看股票代码
+            :param direct_sensitive:
         """
         root = self.__withdrawal_page_root
         stock_code = None
@@ -322,11 +323,14 @@ class THSAction:
         if market_code is None or stock_code is None:
             log.info(f"第{i + 1}个元素的股票代码为空或者不是沪深股票")
             return None
+        withdraw_direct = "买入"
+        if direct_sensitive:
+            withdraw_direct = root().child(f'*[{i + 1}]').child('//*[@resource-id="com.hexin.plat.android:id/result6"]').get_text(),
         return {
             "stock_code": stock_code,
             "market_code": market_code,
             "stock_name": stock_name,
-            "withdraw_direct": "买入",
+            "withdraw_direct": withdraw_direct,
             # 当前系统时间
             "withdraw_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             # "withdraw_time": root().child(f'*[{i + 1}]').child(
@@ -343,12 +347,13 @@ class THSAction:
 
 
 class THSWithdrawWatcher:
-    def __init__(self, trader, insert_stock_callback=None, delete_stock_callback=None):
+    def __init__(self, trader,env, insert_stock_callback=None, delete_stock_callback=None):
         self.worker_thread = None
         self.withdrawal_list_lock = trader.withdrawal_list_lock
         self.stop_event = threading.Event()
         self.wait_interval = .1
         self.trader = trader
+        self.env = env
         self.insert_stock_callback = insert_stock_callback
         self.delete_stock_callback = delete_stock_callback
 
@@ -377,19 +382,19 @@ class THSWithdrawWatcher:
                         content = self.trader.withdrawals_page_hierarchy()
                         if content is None:
                             continue
-                        last_md5 = self.__resolve_page_change(content, last_md5, last_stocks)
+                        last_md5 = self.__resolve_page_change(content, last_md5, last_stocks,self.env.withdrawal.top.direct_sensitive)
                 except Exception as e:
                     log.exception(f"监控撤单页面变化时出错：{e}")
             self.stop_event.wait(self.wait_interval)
         log.info("监控撤单页面变化线程已退出")
 
-    def __resolve_page_change(self, content, last_md5, last_stocks):
+    def __resolve_page_change(self, content, last_md5, last_stocks, direct_sensitive=False):
         current = self.__calc_md5(content)
         if last_md5 != current:
             log.debug(f'last: {last_md5}, current: {current}\n{content}')
             log.debug("撤单页面发生变化")
             # 获取变化的股票
-            stocks = self.trader.get_avail_withdrawals_ex()
+            stocks = self.trader.get_avail_withdrawals_ex(direct_sensitive=direct_sensitive)
             self.__invoke_callback(last_stocks, stocks)
             last_stocks.clear()
             last_stocks.extend(stocks)

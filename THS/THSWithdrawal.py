@@ -2,6 +2,9 @@ from log import log
 
 
 class THSWithdrawal:
+    DIRECT_SENSITIVE = 1
+    DIRECT_INSENSITIVE = 0
+
     def __init__(self, action, env):
         self.action = action
         # 上一次股票行情数据 {'000001': {bid_vol1: 0, ask_vol1: 0,...}}
@@ -61,7 +64,8 @@ class THSWithdrawal:
 
     def do_withdraw(self, cur_stock):
         log.info("执行撤单操作：%s,%s" % (cur_stock['code'], cur_stock['name']))
-        withdrew_stocks = self.action.withdraw(cur_stock['name'], lambda s: s['withdraw_direct'] == '买入')
+        withdrew_stocks = self.action.withdraw(cur_stock['name'], lambda s: s['withdraw_direct'] == '买入',
+                                               self.env.withdrawal.top.direct_sensitive == THSWithdrawal.DIRECT_SENSITIVE)
         # 撤单后，从行情tick记录中删除该股票
         if cur_stock['code'] in self.last_tick:
             self.last_tick.pop(cur_stock['code'])
