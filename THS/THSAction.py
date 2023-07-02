@@ -10,6 +10,7 @@ from pytdx.params import TDXParams
 from uiautomator2.exceptions import XPathElementNotFoundError
 
 from THS.Storage import Storage
+from THS.THSWithdrawal import THSWithdrawal
 from THS.__ini__ import calc_insert_stocks, calc_delete_stocks
 from log import log
 
@@ -382,7 +383,11 @@ class THSWithdrawWatcher:
                         content = self.trader.withdrawals_page_hierarchy()
                         if content is None:
                             continue
-                        last_md5 = self.__resolve_page_change(content, last_md5, last_stocks,self.env.withdrawal.top.direct_sensitive)
+                        top_direct_sensitive = self.env('withdrawal.top.direct_sensitive',THSWithdrawal.DIRECT_INSENSITIVE)
+                        last_md5 = self.__resolve_page_change(content,
+                                                              last_md5,
+                                                              last_stocks,
+                                                              top_direct_sensitive)
                 except Exception as e:
                     log.exception(f"监控撤单页面变化时出错：{e}")
             self.stop_event.wait(self.wait_interval)

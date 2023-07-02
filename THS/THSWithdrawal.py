@@ -33,8 +33,9 @@ class THSWithdrawal:
             # 判断是否需要撤单
             is_withdrawal = False
             # 如果撤单规则的bid_vol1大于0，同时当前买1数大于当前行情的买1数，则撤单
-            if self.env.withdrawal.top.bid_vol1 > 1 and self.env.withdrawal.top.bid_vol1 > cur_bid_vol1:
-                log.info("撤单：由于当前买1数(%d) < 配置买1数(%d)" % (cur_bid_vol1, self.env.withdrawal.top.bid_vol1))
+            top_bid_vol1 = self.env('withdrawal.top.bid_vol1', 0)
+            if top_bid_vol1 > 1 and top_bid_vol1 > cur_bid_vol1:
+                log.info("撤单：由于当前买1数(%d) < 配置买1数(%d)" % (cur_bid_vol1, top_bid_vol1))
                 satisfy_stocks.extend(self.do_withdraw(cur_stock))
                 continue
             # 如果self.withdrawal_stocks中没有该stock.code，则添加
@@ -45,13 +46,14 @@ class THSWithdrawal:
             # 如果self.withdrawal_stocks中有该stock.code，则更新
             else:
                 last_bid_vol1 = self.last_tick[cur_stock['code']]['bid_vol1']
+                top_bid_vol1 = self.env('withdrawal.top.bid_vol1', 0)
                 # 如果撤单规则的买1数小于0，同时当前行情的买1数小于上次的买1数
-                if self.env.withdrawal.top.bid_vol1 < 1 and cur_bid_vol1 < last_bid_vol1:
+                if 1 > top_bid_vol1 > 0 and cur_bid_vol1 < last_bid_vol1:
                     # 如果bid_vol1减小的比例大于撤单规则的bid_vol1，则撤单
                     rate = (last_bid_vol1 - cur_bid_vol1) / last_bid_vol1
-                    if rate > self.env.withdrawal.top.bid_vol1:
+                    if rate > top_bid_vol1:
                         log.info("撤单：(上次买1数[%d] - 当前买1数[%d]) / 上次买1数[%d] = %.3f > 配置买1数[%.2f]"
-                                 % (last_bid_vol1, cur_bid_vol1, last_bid_vol1, rate, self.env.withdrawal.top.bid_vol1))
+                                 % (last_bid_vol1, cur_bid_vol1, last_bid_vol1, rate, top_bid_vol1))
                         is_withdrawal = True
             # 需要撤单
             if is_withdrawal:
@@ -64,8 +66,9 @@ class THSWithdrawal:
 
     def do_withdraw(self, cur_stock):
         log.info("执行撤单操作：%s,%s" % (cur_stock['code'], cur_stock['name']))
+        top_direct_sensitive = self.env('withdrawal.top.direct_sensitive', THSWithdrawal.DIRECT_INSENSITIVE)
         withdrew_stocks = self.action.withdraw(cur_stock['name'], lambda s: s['withdraw_direct'] == '买入',
-                                               self.env.withdrawal.top.direct_sensitive == THSWithdrawal.DIRECT_SENSITIVE)
+                                               top_direct_sensitive == THSWithdrawal.DIRECT_SENSITIVE)
         # 撤单后，从行情tick记录中删除该股票
         if cur_stock['code'] in self.last_tick:
             self.last_tick.pop(cur_stock['code'])

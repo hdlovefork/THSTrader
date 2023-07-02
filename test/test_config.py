@@ -5,6 +5,9 @@ import unittest
 import yaml
 from dynaconf import Dynaconf
 
+from THS.THSWithdrawal import THSWithdrawal
+
+
 class TestConfig(unittest.TestCase):
     def setUp(self) -> None:
         self.settings = Dynaconf(
@@ -17,6 +20,7 @@ class TestConfig(unittest.TestCase):
 
     def test_can_get_trade_top_withdraw(self):
         self.assertEqual(0.3, self.settings('withdrawal.top.bid_vol1', None))
+        self.assertEqual(THSWithdrawal.DIRECT_INSENSITIVE, self.settings('withdrawal.top.direct_sensitive',THSWithdrawal.DIRECT_INSENSITIVE))
 
     def test_path(self):
         print(__file__)
