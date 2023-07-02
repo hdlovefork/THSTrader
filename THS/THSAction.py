@@ -92,12 +92,12 @@ class THSAction:
             root().child(f'*[{i + 1}]').click()
             time.sleep(.1)
             if self.d.xpath('@com.hexin.plat.android:id/title_view').wait():
-                stock = {'stock_code': '', 'stock_name': ''}
+                stock = {'stock_code': None, 'stock_name': None, 'market_code': None}
                 log.debug("股票撤单对话框出现")
                 stock['stock_code'] = self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').get_text()
                 stock['stock_code'] = stock['stock_code'].replace('代码  ', '')
                 # 如果股票代码不是以0、3、6开头，则不是沪深股票，不处理
-                if stock['stock_code'] and stock['stock_code'][0] not in ['0', '3', '6']:
+                if len(stock['stock_code']) > 0 and stock['stock_code'][0] not in ['0', '3', '6']:
                     log.debug("股票代码：{} 不是沪深股票，不处理".format(stock['stock_code']))
                     return stock
                 stock['stock_name'] = self.d.xpath('@com.hexin.plat.android:id/stockname_textview').get_text()
