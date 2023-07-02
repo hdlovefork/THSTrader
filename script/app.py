@@ -26,12 +26,13 @@ class App:
 
     def run(self):
         try:
+            log.info("正在启动程序...")
             self.watcher.start()
             self.quotation_watcher.start()
 
             # 提示用户输入exit退出程序
             while True:
-                cmd = input("请输入命令(exit退出)：")
+                cmd = input("请输入命令(exit)退出：")
                 if cmd == "exit":
                     break
         except Exception as e:

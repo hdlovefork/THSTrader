@@ -41,7 +41,17 @@ pip install -r requirements.txt
 
 ### 6. 查看模拟器或真机serial_no（推荐使用真机）
 * 模拟器推荐夜神支持Mac、Windows、Linux 
-* 真机推荐安卓手机，本项目在小米12手机上测试通过(需要在设置中关闭MIUI优化)
+* 真机推荐安卓手机
+
+本项目在小米12手机上测试通过
+> 小米12需要在开发者选项中开启以下选项：
+> * "USB调试"该项允许adb连接真机
+> * "USB调试（安全设置）"该项允许模拟点击
+> * "USB安装"该项允许真机通过adb安装ATX
+
+本项目在荣耀play手机上测试通过
+> 荣耀play需要在开发者选项中开启以下选项：
+> * "USB调试"该项允许adb连接真机
 
 ```bash
 # 查看方法如下：
@@ -67,8 +77,9 @@ acfd70a2	unauthorized
 ，然后请将这个serial_no填入.env.toml文件中的`serial_no`字段
 
 ## 运行程序
-### 1. 获取可用行情服务器的ip，进入bin/目录下运行：
+### 1. 获取可用行情服务器的ip，进入tools/目录下运行：
 ``` bash
+cd tools
 python check.py
 参数（可选）:
     --num: 获取可用服务器的数量（默认为5个）
@@ -86,5 +97,6 @@ cp .env.toml.example .env.toml
 python main.py
 ```
 
-## 二次开发用到的工具
-### 查看[uiautomatorviewer](uiautomatorviewer/README.md)的使用方法
+## 二次开发
+### 1. 用到的工具
+查看[uiautomatorviewer](uiautomatorviewer/README.md)的使用方法
