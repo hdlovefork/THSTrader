@@ -73,7 +73,9 @@ class THSWithdrawal:
         if cur_stock['code'] in self.last_tick:
             self.last_tick.pop(cur_stock['code'])
         log.debug("已撤单股票：%s" % withdrew_stocks)
-        self.play_sound(cur_stock)
+        if len(withdrew_stocks) > 0:
+            # 播放语音
+            self.play_sound(cur_stock)
         return withdrew_stocks
 
     def play_sound(self,cur_stock):
