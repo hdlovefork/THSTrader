@@ -2,7 +2,6 @@ import json
 import os.path
 import unittest
 
-import yaml
 from dynaconf import Dynaconf
 
 from THS.THSWithdrawal import THSWithdrawal

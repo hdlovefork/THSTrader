@@ -1,5 +1,5 @@
 from log import log
-
+from THS.__ini__ import voice
 
 class THSWithdrawal:
     DIRECT_SENSITIVE = 1
@@ -73,4 +73,14 @@ class THSWithdrawal:
         if cur_stock['code'] in self.last_tick:
             self.last_tick.pop(cur_stock['code'])
         log.debug("已撤单股票：%s" % withdrew_stocks)
+        self.play_sound(cur_stock)
         return withdrew_stocks
+
+    def play_sound(self,cur_stock):
+        """播放语音"""
+        msg = self.env.withdrawal.top.voice_msg
+        # 如果消息的长度大于0，则播放语音
+        if msg and len(msg) > 0:
+            # 将%s替换为股票名称
+            msg = msg.replace('%s', cur_stock['name'])
+            voice.say(msg)
