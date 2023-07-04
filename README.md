@@ -34,6 +34,7 @@
 ``` bash
 git clone https://github.com/nladuo/THSTrader.git
 cd THSTrader
+pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 pip install -r requirements.txt
 ```
 > 安装依赖过程中如果有报错，请将下面内容添加到hosts文件中：
