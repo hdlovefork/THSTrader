@@ -23,6 +23,7 @@ class TestTHSWithdrawal(unittest.TestCase):
 
         # 配置文件设置为当买1手数小于200则撤单
         self.withdrawal.env.withdrawal.top.bid_vol1 = 200
+
         if len(withdraw_stocks) > 0:
             r = measure_time(self.withdrawal.resolve, stocks)
             self.assertEqual(len(stocks), len(r))
@@ -51,3 +52,13 @@ class TestTHSWithdrawal(unittest.TestCase):
         if len(stocks) > 0:
             r = measure_time(self.withdrawal.resolve, stocks)
             self.assertEqual(len(stocks), len(r))
+
+    def test_play_sound_when_voice_msg_is_unset(self):
+        stock = {'name': '美丽生态'}
+        del env.withdrawal.top.voice_msg
+        self.withdrawal.play_sound(stock)
+
+    def test_play_sound_when_voice_msg_is_set(self):
+        stock = {'name': '美丽生态'}
+        env.withdrawal.top.voice_msg = '恭喜你，%s已经撤单成功'
+        self.withdrawal.play_sound(stock)

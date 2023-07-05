@@ -1,6 +1,7 @@
 from log import log
 from THS.__ini__ import voice
 
+
 class THSWithdrawal:
     DIRECT_SENSITIVE = 1
     DIRECT_INSENSITIVE = 0
@@ -80,7 +81,7 @@ class THSWithdrawal:
 
     def play_sound(self,cur_stock):
         """播放语音"""
-        msg = self.env.withdrawal.top.voice_msg
+        msg = self.env('withdrawal.top.voice_msg','%s撤单成功')
         # 如果消息的长度大于0，则播放语音
         if msg and len(msg) > 0:
             # 将%s替换为股票名称
