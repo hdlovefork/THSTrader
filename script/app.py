@@ -35,6 +35,8 @@ class App:
                 cmd = input("请输入命令(exit)退出：")
                 if cmd == "exit":
                     break
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt
         except Exception as e:
             log.exception(e)
         finally:

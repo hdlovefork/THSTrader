@@ -89,9 +89,9 @@ class THSAction:
         root = self.__withdrawal_page_root
         try:
             log.debug("点击撤单列表第{}个元素".format(i + 1))
-            root().child(f'*[{i + 1}]').click()
+            root().child(f'*[{i + 1}]').click_nowait()
             time.sleep(.1)
-            if self.d.xpath('@com.hexin.plat.android:id/title_view').wait():
+            if self.wait('@com.hexin.plat.android:id/title_view'):
                 stock = {'stock_code': None, 'stock_name': None, 'market_code': None}
                 log.debug("股票撤单对话框出现")
                 stock['stock_code'] = self.d.xpath('@com.hexin.plat.android:id/stockcode_textview').get_text()
@@ -141,8 +141,8 @@ class THSAction:
             if completed:
                 break
             with self.withdrawal_list_lock:
-                if not self.enter_withdrawals_page():
-                    continue
+                # if not self.enter_withdrawals_page():
+                #     continue
                 if self.last_withdrawal_stocks is None:
                     self.last_withdrawal_stocks = self.get_avail_withdrawals_ex(False, direct_sensitive)
                 i = 0
@@ -177,16 +177,10 @@ class THSAction:
         path = set[name]
         log.debug(f"点击{name} {path}")
         if wait:
-            # 等到元素出现则直接点击，等不到则退出
-            if self.d.xpath(path).wait() is not None:
-                try:
-                    self.d.xpath(path).click()
-                except:
-                    pass
-            return
+            self.d.xpath(path).click_exists()
         # 不等待直接点击
         try:
-            self.d.xpath(path).click()
+            self.d.xpath(path).click_nowait()
         except:
             pass
 
@@ -279,7 +273,7 @@ class THSAction:
         return None
 
     def in_withdrawals_page(self):
-        return self.__withdrawal_page_root().wait() is not None
+        return self.wait(f"//*[@resource-id='{PAGE_INDICATOR['撤单列表']}']")
 
     def __withdrawal_page_root(self):
         return self.d.xpath(f"//*[@resource-id='{PAGE_INDICATOR['撤单列表']}']")
@@ -301,7 +295,7 @@ class THSAction:
                 log.debug(f"当前第{i + 1}个元素的股票名称不应该为空字符串")
                 raise XPathElementNotFoundError
         except XPathElementNotFoundError:
-            log.debug("当前没有可撤委托单")
+            log.debug("已到达撤单列表底部")
             return None
         except Exception as e:
             log.error(f"获取股票名称出错：{e}")
@@ -345,6 +339,15 @@ class THSAction:
             # "withdraw_status": root().child(f'android.widget.LinearLayout[{i + 1}]').child(
             #     '//*[@resource-id="com.hexin.plat.android:id/result7"]').get_text()
         }
+
+    def wait(self, xpath, timeout=None):
+        deadline = time.time() + (timeout or self.d.settings['wait_timeout'])
+        while time.time() < deadline:
+            # self.logger.debug("wait %s left %.1fs", self, deadline-time.time())
+            if self.d.xpath(xpath).exists:
+                return True
+            time.sleep(.1)
+        return False
 
 
 class THSWithdrawWatcher:
