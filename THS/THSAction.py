@@ -124,7 +124,7 @@ class THSAction:
         r = self.withdraw_dialog_when(i, when, lambda stock: self.click('撤单确定'))
         if r is not None:
             # 点击确定后，等待撤单列表刷新
-            self.__withdrawal_page_root().wait()
+            self.in_withdrawals_page()
         return r
 
     def withdraw_dialog_cancel_when(self, i, when):
@@ -262,8 +262,7 @@ class THSAction:
         # 刷新列表
         self.click("刷新")
         # 等待刷新完成
-        self.__withdrawal_page_root().wait()
-        if not self.__withdrawal_page_root().exists:
+        if not self.in_withdrawals_page():
             return None
         root = ET.fromstring(self.d.dump_hierarchy())
         # 找到撤单节点并获取xml内容
@@ -350,6 +349,11 @@ class THSAction:
         return False
 
 
+def calc_md5(content):
+    log.debug("计算页面的md5")
+    return hashlib.md5(content.encode()).hexdigest()
+
+
 class THSWithdrawWatcher:
     def __init__(self, trader,env, insert_stock_callback=None, delete_stock_callback=None):
         self.worker_thread = None
@@ -397,7 +401,7 @@ class THSWithdrawWatcher:
         log.info("监控撤单页面变化线程已退出")
 
     def __resolve_page_change(self, content, last_md5, last_stocks, direct_sensitive=False):
-        current = self.__calc_md5(content)
+        current = calc_md5(content)
         if last_md5 != current:
             log.debug(f'last: {last_md5}, current: {current}\n{content}')
             log.debug("撤单页面发生变化")
@@ -407,10 +411,6 @@ class THSWithdrawWatcher:
             last_stocks.clear()
             last_stocks.extend(stocks)
         return current
-
-    def __calc_md5(self, content):
-        log.debug("计算页面的md5")
-        return hashlib.md5(content.encode()).hexdigest()
 
     def __invoke_callback(self, last_stocks, stocks):
         # 获取当前持仓股票与上一次持仓股票的差集
