@@ -7,6 +7,8 @@ if __name__ == '__main__':
         env = env.load()
         App(env).run()
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        pass
     except Exception as e:
         log.exception(e)
+    finally:
+        log.info("程序已退出")

@@ -12,7 +12,7 @@ class App:
         self.trader = THSAction(env.serial_no)
         self.quotation = THSQuotation(env.ips_path)
         self.quotation_watcher = QuotationWatcher(self.quotation, self.__listen_quotation)
-        self.watcher = THSWithdrawWatcher(self.trader,env,self.__insert_stocks, self.__delete_stocks)
+        self.withdraw_watcher = THSWithdrawWatcher(self.trader, env, self.__insert_stocks, self.__delete_stocks)
         self.withdrawals = THSWithdrawal(self.trader,env)
 
     def __listen_quotation(self, quot_stocks):
@@ -27,7 +27,7 @@ class App:
     def run(self):
         try:
             log.info("正在启动程序...")
-            self.watcher.start()
+            self.withdraw_watcher.start()
             self.quotation_watcher.start()
 
             # 提示用户输入exit退出程序
@@ -36,11 +36,11 @@ class App:
                 if cmd == "exit":
                     break
         except KeyboardInterrupt:
-            raise KeyboardInterrupt
+            pass
         except Exception as e:
             log.exception(e)
         finally:
             log.info("正在退出程序...")
             self.quotation_watcher.stop()
-            self.watcher.stop()
+            self.withdraw_watcher.stop()
             self.quotation.close()
