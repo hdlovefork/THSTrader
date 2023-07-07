@@ -397,7 +397,7 @@ class THSWithdrawWatcher:
                                                               top_direct_sensitive)
                 except Exception as e:
                     log.exception(f"监控撤单页面变化时出错：{e}")
-            self.stop_event.wait(self.wait_interval)
+            self.stop_event.wait(max(self.wait_interval,self.env('withdrawal.top.refresh_interval',0)))
         log.info("监控撤单页面变化线程已退出")
 
     def __resolve_page_change(self, content, last_md5, last_stocks, direct_sensitive=False):
