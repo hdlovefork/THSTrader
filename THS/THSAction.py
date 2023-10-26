@@ -21,7 +21,7 @@ PAGE_INDICATOR = {
     "股票多选": "com.hexin.plat.android:id/stockname_tv",
     "关闭按钮1": "com.hexin.plat.android:id/close_btn",
     "确定按钮": "com.hexin.plat.android:id/ok_btn",
-    "刷新": '//*[@resource-id="com.hexin.plat.android:id/title_bar_right_container"]//*[@resource-id="com.hexin.plat.android:id/title_bar_img"]',
+    "刷新": '//*[@resource-id="com.hexin.plat.android:id/title_bar_right_container"]//*[@resource-id="com.hexin.plat.android:id/refresh_img"]',
     "撤单列表": "com.hexin.plat.android:id/chedan_recycler_view",
     "取消": "com.hexin.plat.android:id/cancel_btn",
     "撤单取消": "@com.hexin.plat.android:id/option_cancel",
